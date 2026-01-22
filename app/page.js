@@ -809,6 +809,15 @@ export default function PriceNija() {
               <a href="#" className="hover:text-white transition-colors">Contact</a>
             </div>
           </div>
+
+{/* Contact Details */}
+          <div className="mt-6 pt-6 border-t border-stone-800/50 flex flex-col md:flex-row items-center justify-center gap-4 text-sm text-stone-400">
+                        <span className="font-medium text-white">Jamiu Awoke</span>
+                        <span className="hidden md:inline text-stone-600">•</span>
+                        <a href="mailto:jamiu.awoke@gmail.com" className="hover:text-emerald-400 transition-colors">jamiu.awoke@gmail.com</a>
+                        <span className="hidden md:inline text-stone-600">•</span>
+                        <a href="tel:+12142070261" className="hover:text-emerald-400 transition-colors">214-207-0261</a>
+            </div>
           <div className="mt-6 pt-6 border-t border-stone-800/50 text-center text-xs text-stone-600">
             © {new Date().getFullYear()} PriceNija. Built for Nigeria 🇳🇬
           </div>
