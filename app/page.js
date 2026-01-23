@@ -1,7 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabase';
-
+import { supabase } from '../lib/supabase';
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [markets, setMarkets] = useState([]);
