@@ -1,32 +1,115 @@
-import './globals.css'
+import { Inter } from 'next/font/google';
+import './globals.css';
+
+const inter = Inter({ subsets: ['latin'] });
 
 export const metadata = {
+  // Basic Meta Tags
   title: 'PriceNija - Nigerian Commodity Market Price Tracker',
-  description: 'Real-time agricultural commodity prices across Nigeria\'s major markets. Track prices for beans, maize, rice, and more.',
-  keywords: 'Nigeria, commodity prices, market prices, beans, maize, rice, agriculture, Dawanau, Mile 12, Lagos, Kano',
+  description: 'Track real-time prices for grains, vegetables, tubers, and commodities across Nigeria\'s top markets. Compare prices, find the best deals, and make informed buying decisions.',
+  keywords: 'Nigeria commodity prices, food prices Nigeria, market prices, grain prices, rice prices Nigeria, maize prices, agricultural prices, Dawanau market, Mile 12 market, Bodija market',
   authors: [{ name: 'PriceNija' }],
+  creator: 'PriceNija',
+  publisher: 'PriceNija',
+  
+  // Favicon & Icons
+  icons: {
+    icon: '/favicon.ico',
+    apple: '/apple-touch-icon.png',
+  },
+  
+  // Open Graph (Facebook, WhatsApp, LinkedIn)
   openGraph: {
-    title: 'PriceNija - Nigerian Commodity Market Price Tracker',
-    description: 'Real-time agricultural commodity prices across Nigeria\'s major markets',
+    type: 'website',
+    locale: 'en_NG',
     url: 'https://pricenija.com',
     siteName: 'PriceNija',
-    locale: 'en_NG',
-    type: 'website',
+    title: 'PriceNija - Nigerian Commodity Market Price Tracker',
+    description: 'Track real-time prices for grains, vegetables, tubers, and commodities across Nigeria\'s top markets. Compare prices and find the best deals.',
+    images: [
+      {
+        url: 'https://pricenija.com/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'PriceNija - Nigerian Commodity Market Price Tracker',
+      },
+    ],
   },
+  
+  // Twitter Card
   twitter: {
     card: 'summary_large_image',
     title: 'PriceNija - Nigerian Commodity Market Price Tracker',
-    description: 'Real-time agricultural commodity prices across Nigeria\'s major markets',
+    description: 'Track real-time prices for grains, vegetables, tubers, and commodities across Nigeria\'s top markets.',
+    images: ['https://pricenija.com/og-image.png'],
+    creator: '@pricenija',
   },
-}
+  
+  // Robots & Indexing
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+  
+  // Verification (add your codes when you have them)
+  // verification: {
+  //   google: 'your-google-verification-code',
+  // },
+  
+  // Additional Meta
+  category: 'finance',
+  classification: 'Business',
+};
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  themeColor: '#22c55e',
+};
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <head>
-        <link rel="icon" href="/favicon.ico" />
+        {/* Preconnect to external domains for performance */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        
+        {/* JSON-LD Structured Data for Rich Snippets */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'WebApplication',
+              name: 'PriceNija',
+              description: 'Track real-time commodity prices across Nigerian markets',
+              url: 'https://pricenija.com',
+              applicationCategory: 'FinanceApplication',
+              operatingSystem: 'Any',
+              offers: {
+                '@type': 'Offer',
+                price: '0',
+                priceCurrency: 'NGN',
+              },
+              author: {
+                '@type': 'Organization',
+                name: 'PriceNija',
+                url: 'https://pricenija.com',
+              },
+            }),
+          }}
+        />
       </head>
-      <body>{children}</body>
+      <body className={inter.className}>{children}</body>
     </html>
-  )
+  );
 }
