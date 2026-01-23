@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { MapPin, ArrowLeft, TrendingUp, TrendingDown, Package, Clock } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '../../../lib/supabase';
 
 export default function MarketDetailPage() {
     const params = useParams();
