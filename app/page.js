@@ -1237,9 +1237,7 @@ export default function PriceNija() {
                         </Link>
                 );
               })}
-            </div>
-              </div>
-          </div>
+            </div>    
         )}
 
         {/* ============================================ */}
