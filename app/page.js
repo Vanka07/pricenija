@@ -1202,7 +1202,7 @@ export default function PriceNija() {
               {markets.map((market) => {
                 const marketData = getPriceData.marketPrices[market.id];
                 return (
-                  <Link href={`/markets/${market.id}`} key={market.id}>
+                  <Link href={"/markets/" + market.id} key={market.id}>
                             <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800 hover:border-gray-700 transition cursor-pointer">
                     <div className="flex justify-between items-start mb-4">
                       <div>
