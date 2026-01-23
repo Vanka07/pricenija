@@ -1,25 +1,19 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { 
-  Search, TrendingUp, TrendingDown, MapPin, Bell, 
-  ChevronRight, ArrowUpRight, ArrowDownRight, Minus, 
-  RefreshCw, Menu, X, Star, StarOff, Home, BarChart3
+  BarChart3, Home, Package, MapPin, DollarSign, Settings, 
+  Save, Check, X, TrendingUp, Calendar, Clock, RefreshCw, Menu, LogOut, Download, ChevronLeft
 } from 'lucide-react';
-import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
-} from 'recharts';
+import Link from 'next/link';
 
-// ============================================
-// DATA CONFIGURATION
-// ============================================
-
+// Data
 const markets = [
-  { id: 1, name: 'Dawanau', city: 'Kano', state: 'Kano', region: 'North-West', description: 'Largest grain market in West Africa' },
-  { id: 2, name: 'Mile 12', city: 'Lagos', state: 'Lagos', region: 'South-West', description: 'Largest foodstuff market in Lagos' },
-  { id: 3, name: 'Bodija', city: 'Ibadan', state: 'Oyo', region: 'South-West', description: 'Major wholesale agricultural hub' },
-  { id: 4, name: 'Ogbete Main', city: 'Enugu', state: 'Enugu', region: 'South-East', description: 'Largest market in South-East' },
-  { id: 5, name: 'Wuse', city: 'Abuja', state: 'FCT', region: 'North-Central', description: 'Federal Capital market hub' },
+  { id: 1, name: 'Dawanau', city: 'Kano', state: 'Kano', region: 'North-West' },
+  { id: 2, name: 'Mile 12', city: 'Lagos', state: 'Lagos', region: 'South-West' },
+  { id: 3, name: 'Bodija', city: 'Ibadan', state: 'Oyo', region: 'South-West' },
+  { id: 4, name: 'Ogbete Main', city: 'Enugu', state: 'Enugu', region: 'South-East' },
+  { id: 5, name: 'Wuse', city: 'Abuja', state: 'FCT', region: 'North-Central' },
 ];
 
 const commodities = [
@@ -43,786 +37,399 @@ const commodities = [
   { id: 18, name: 'Palm Oil', category: 'Oils', unit: 'per 25 liters', icon: '🫒' },
 ];
 
-const basePrices = {
-  1: 75000, 2: 72000, 3: 68000, 4: 85000, 5: 65000, 6: 58000,
-  7: 145000, 8: 135000, 9: 95000, 10: 120000, 11: 140000,
-  12: 45000, 13: 48000, 14: 3500, 15: 85000, 16: 75000,
-  17: 95000, 18: 55000,
-};
-
-const regionMultipliers = {
-  'North-West': 0.85,
-  'North-Central': 0.95,
-  'South-West': 1.15,
-  'South-East': 1.10,
-};
-
-// Generate price data
-const generatePriceData = () => {
-  const data = [];
-  commodities.forEach(commodity => {
-    markets.forEach(market => {
-      const basePrice = basePrices[commodity.id];
-      const regionMult = regionMultipliers[market.region] || 1;
-      const marketVariation = 0.95 + Math.random() * 0.10;
-      const price = Math.round(basePrice * regionMult * marketVariation);
-      const change = (Math.random() - 0.48) * 8;
-      
-      data.push({
-        commodityId: commodity.id,
-        marketId: market.id,
-        price,
-        change: parseFloat(change.toFixed(1)),
-        lastUpdated: new Date().toISOString(),
-      });
-    });
-  });
-  return data;
-};
-
-const generateHistoricalData = (commodityId, days = 30) => {
-  const basePrice = basePrices[commodityId] || 50000;
-  const data = [];
-  
-  for (let i = days; i >= 0; i--) {
-    const date = new Date();
-    date.setDate(date.getDate() - i);
-    const trend = 1 + (days - i) * 0.003;
-    const noise = 0.95 + Math.random() * 0.10;
-    
-    data.push({
-      date: date.toLocaleDateString('en-NG', { month: 'short', day: 'numeric' }),
-      price: Math.round(basePrice * trend * noise),
-    });
-  }
-  return data;
-};
-
-const priceData = generatePriceData();
-
-// Utility functions
-const formatPrice = (price) => {
-  return new Intl.NumberFormat('en-NG', {
-    style: 'currency',
-    currency: 'NGN',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(price);
-};
-
-const formatCompactPrice = (price) => {
-  if (price >= 1000000) return `₦${(price / 1000000).toFixed(1)}M`;
-  if (price >= 1000) return `₦${(price / 1000).toFixed(0)}K`;
-  return `₦${price}`;
-};
-
-// Components
-const PriceChange = ({ change, size = 'default' }) => {
-  const sizeClasses = size === 'large' ? 'text-lg font-bold' : 'text-sm font-medium';
-  
-  if (change > 0) {
-    return (
-      <span className={`inline-flex items-center text-rose-500 ${sizeClasses}`}>
-        <ArrowUpRight size={size === 'large' ? 20 : 16} />
-        +{change.toFixed(1)}%
-      </span>
-    );
-  } else if (change < 0) {
-    return (
-      <span className={`inline-flex items-center text-emerald-500 ${sizeClasses}`}>
-        <ArrowDownRight size={size === 'large' ? 20 : 16} />
-        {change.toFixed(1)}%
-      </span>
-    );
-  }
-  return (
-    <span className={`inline-flex items-center text-stone-400 ${sizeClasses}`}>
-      <Minus size={size === 'large' ? 20 : 16} />
-      0.0%
-    </span>
-  );
-};
-
-const StatCard = ({ title, value, subValue, icon: Icon, color = 'emerald' }) => {
+const StatCard = ({ title, value, icon: Icon, color }) => {
   const colorClasses = {
     emerald: 'from-emerald-500/20 to-emerald-600/5 border-emerald-500/30',
+    blue: 'from-blue-500/20 to-blue-600/5 border-blue-500/30',
     amber: 'from-amber-500/20 to-amber-600/5 border-amber-500/30',
     rose: 'from-rose-500/20 to-rose-600/5 border-rose-500/30',
-    blue: 'from-blue-500/20 to-blue-600/5 border-blue-500/30',
   };
-  
   return (
-    <div className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${colorClasses[color]} border p-5`}>
+    <div className={`p-5 rounded-2xl bg-gradient-to-br ${colorClasses[color]} border`}>
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-stone-400 text-sm font-medium mb-1">{title}</p>
-          <p className="text-2xl font-bold text-white">{value}</p>
-          {subValue && <p className="text-stone-400 text-xs mt-1">{subValue}</p>}
+          <p className="text-stone-400 text-sm">{title}</p>
+          <p className="text-2xl font-bold text-white mt-1">{value}</p>
         </div>
-        {Icon && (
-          <div className="p-2 rounded-xl bg-white/5">
-            <Icon size={24} className="text-stone-300" />
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
-
-const CommodityCard = ({ commodity, priceInfo, isSelected, onClick }) => {
-  const avgPrice = priceInfo.reduce((sum, p) => sum + p.price, 0) / priceInfo.length;
-  const avgChange = priceInfo.reduce((sum, p) => sum + p.change, 0) / priceInfo.length;
-  
-  return (
-    <button
-      onClick={onClick}
-      className={`w-full p-4 rounded-xl transition-all duration-200 text-left ${
-        isSelected 
-          ? 'bg-emerald-500/20 border-2 border-emerald-500/50 shadow-lg shadow-emerald-500/10' 
-          : 'bg-stone-800/50 border border-stone-700/50 hover:bg-stone-800 hover:border-stone-600'
-      }`}
-    >
-      <div className="flex items-center gap-3">
-        <span className="text-3xl">{commodity.icon}</span>
-        <div className="flex-1 min-w-0">
-          <h3 className={`font-semibold truncate ${isSelected ? 'text-emerald-400' : 'text-white'}`}>
-            {commodity.name}
-          </h3>
-          <p className="text-xs text-stone-500">{commodity.unit}</p>
-        </div>
-        <div className="text-right">
-          <p className="font-bold text-white">{formatCompactPrice(avgPrice)}</p>
-          <PriceChange change={avgChange} />
-        </div>
-      </div>
-    </button>
-  );
-};
-
-const MarketPriceRow = ({ market, priceInfo, avgPrice, rank }) => {
-  const vsAvg = ((priceInfo.price - avgPrice) / avgPrice * 100);
-  const isBest = rank === 1;
-  
-  return (
-    <div className={`flex items-center gap-4 p-4 rounded-xl transition-all ${
-      isBest ? 'bg-emerald-500/10 border border-emerald-500/30' : 'bg-stone-800/30 hover:bg-stone-800/50'
-    }`}>
-      <div className="w-8 h-8 rounded-full bg-stone-700/50 flex items-center justify-center text-sm font-bold text-stone-400">
-        {rank}
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <h4 className="font-semibold text-white">{market.name}</h4>
-          {isBest && (
-            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-              Best Price
-            </span>
-          )}
-        </div>
-        <p className="text-sm text-stone-500 flex items-center gap-1">
-          <MapPin size={12} />
-          {market.city}, {market.state}
-        </p>
-      </div>
-      <div className="text-right">
-        <p className={`font-bold text-lg ${isBest ? 'text-emerald-400' : 'text-white'}`}>
-          {formatPrice(priceInfo.price)}
-        </p>
-        <div className="flex items-center gap-3 justify-end">
-          <PriceChange change={priceInfo.change} />
-          <span className={`text-xs ${vsAvg < 0 ? 'text-emerald-400' : vsAvg > 0 ? 'text-rose-400' : 'text-stone-500'}`}>
-            {vsAvg > 0 ? '+' : ''}{vsAvg.toFixed(1)}% vs avg
-          </span>
+        <div className="p-3 rounded-xl bg-white/5">
+          <Icon size={24} className="text-stone-300" />
         </div>
       </div>
     </div>
   );
 };
 
-// Main Component
-export default function PriceNija() {
-  const [selectedCommodity, setSelectedCommodity] = useState(commodities[0]);
-  const [selectedCategory, setSelectedCategory] = useState('All');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState('dashboard');
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [watchlist, setWatchlist] = useState([1, 3, 7, 15]);
-  const [timeRange, setTimeRange] = useState('30d');
+export default function AdminDashboard() {
+  const [activeSection, setActiveSection] = useState('dashboard');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedMarket, setSelectedMarket] = useState(1);
+  const [priceEntries, setPriceEntries] = useState({});
+  const [toast, setToast] = useState(null);
 
-  const categories = ['All', ...new Set(commodities.map(c => c.category))];
-
-  const filteredCommodities = useMemo(() => {
-    return commodities.filter(c => {
-      const matchesCategory = selectedCategory === 'All' || c.category === selectedCategory;
-      const matchesSearch = c.name.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchesCategory && matchesSearch;
-    });
-  }, [selectedCategory, searchQuery]);
-
-  const commodityPrices = useMemo(() => {
-    return priceData
-      .filter(p => p.commodityId === selectedCommodity.id)
-      .map(p => ({
-        ...p,
-        market: markets.find(m => m.id === p.marketId),
-      }))
-      .sort((a, b) => a.price - b.price);
-  }, [selectedCommodity]);
-
-  const historicalData = useMemo(() => {
-    const days = timeRange === '7d' ? 7 : timeRange === '30d' ? 30 : 90;
-    return generateHistoricalData(selectedCommodity.id, days);
-  }, [selectedCommodity, timeRange]);
-
-  const avgPrice = Math.round(commodityPrices.reduce((sum, p) => sum + p.price, 0) / commodityPrices.length);
-  const lowestPrice = commodityPrices[0];
-  const highestPrice = commodityPrices[commodityPrices.length - 1];
-  const priceSpread = highestPrice?.price - lowestPrice?.price;
-
-  const toggleWatchlist = (id) => {
-    setWatchlist(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
   };
 
-  const topMovers = useMemo(() => {
-    const allPrices = priceData.map(p => ({
-      ...p,
-      commodity: commodities.find(c => c.id === p.commodityId),
-      market: markets.find(m => m.id === p.marketId),
-    }));
-    
-    const gainers = [...allPrices].sort((a, b) => b.change - a.change).slice(0, 4);
-    const losers = [...allPrices].sort((a, b) => a.change - b.change).slice(0, 4);
-    
-    return { gainers, losers };
-  }, []);
+  const handlePriceChange = (commodityId, value) => {
+    setPriceEntries(prev => ({ ...prev, [commodityId]: value }));
+  };
+
+  const savePrices = () => {
+    const filledCount = Object.values(priceEntries).filter(v => v).length;
+    if (filledCount === 0) {
+      showToast('Please enter at least one price', 'error');
+      return;
+    }
+    // Here you would save to database
+    console.log('Saving prices:', { market: selectedMarket, date: selectedDate, prices: priceEntries });
+    showToast(`${filledCount} prices saved successfully!`);
+    setPriceEntries({});
+  };
+
+  const menuItems = [
+    { id: 'dashboard', label: 'Dashboard', icon: Home },
+    { id: 'prices', label: 'Price Entry', icon: DollarSign },
+    { id: 'commodities', label: 'Commodities', icon: Package },
+    { id: 'markets', label: 'Markets', icon: MapPin },
+    { id: 'reports', label: 'Reports', icon: BarChart3 },
+  ];
 
   return (
     <div className="min-h-screen bg-stone-950 text-white">
-      {/* Gradient Background */}
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-amber-500/5 rounded-full blur-3xl" />
-      </div>
-
-      {/* Header */}
-      <header className="sticky top-0 z-50 backdrop-blur-xl bg-stone-950/80 border-b border-stone-800/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/25">
-                  <span className="text-xl font-black text-white">₦</span>
-                </div>
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-amber-400 rounded-full animate-pulse" />
-              </div>
-              <div>
-                <h1 className="font-black text-xl tracking-tight">
-                  <span className="text-white">Price</span>
-                  <span className="text-emerald-400">Nija</span>
-                </h1>
-                <p className="text-[10px] text-stone-500 font-medium tracking-wider uppercase">Market Intelligence</p>
-              </div>
+      {/* Mobile sidebar overlay */}
+      {sidebarOpen && (
+        <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
+      )}
+      
+      {/* Sidebar */}
+      <aside className={`fixed top-0 left-0 h-full w-64 bg-stone-900 border-r border-stone-800 z-50 transform transition-transform duration-300 lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="p-6 border-b border-stone-800">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center">
+              <span className="text-xl font-black text-white">N</span>
             </div>
-
-            <nav className="hidden md:flex items-center gap-1">
-              {[
-                { id: 'dashboard', label: 'Dashboard', icon: Home },
-                { id: 'prices', label: 'Prices', icon: BarChart3 },
-                { id: 'markets', label: 'Markets', icon: MapPin },
-                { id: 'watchlist', label: 'Watchlist', icon: Star },
-              ].map(tab => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
-                    activeTab === tab.id
-                      ? 'bg-emerald-500/20 text-emerald-400'
-                      : 'text-stone-400 hover:text-white hover:bg-stone-800/50'
-                  }`}
-                >
-                  <tab.icon size={18} />
-                  {tab.label}
-                </button>
-              ))}
-            </nav>
-
-            <div className="flex items-center gap-3">
-              <button className="relative p-2 rounded-lg text-stone-400 hover:text-white hover:bg-stone-800/50 transition-all">
-                <Bell size={20} />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-emerald-400 rounded-full" />
-              </button>
-              <button
-                className="md:hidden p-2 rounded-lg text-stone-400 hover:text-white hover:bg-stone-800/50"
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              >
-                {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
-              </button>
+            <div>
+              <h1 className="font-black text-lg text-white">PriceNija</h1>
+              <p className="text-xs text-stone-500">Admin Panel</p>
             </div>
           </div>
         </div>
 
-        {mobileMenuOpen && (
-          <div className="md:hidden bg-stone-900/95 backdrop-blur-xl border-t border-stone-800/50 px-4 py-3">
-            {['dashboard', 'prices', 'markets', 'watchlist'].map(tab => (
-              <button
-                key={tab}
-                onClick={() => { setActiveTab(tab); setMobileMenuOpen(false); }}
-                className={`block w-full text-left py-3 px-4 rounded-lg mb-1 ${
-                  activeTab === tab ? 'bg-emerald-500/20 text-emerald-400' : 'text-stone-300 hover:bg-stone-800'
-                }`}
-              >
-                {tab.charAt(0).toUpperCase() + tab.slice(1)}
-              </button>
-            ))}
-          </div>
-        )}
-      </header>
+        <nav className="p-4 space-y-1">
+          {menuItems.map(item => (
+            <button
+              key={item.id}
+              onClick={() => { setActiveSection(item.id); setSidebarOpen(false); }}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+                activeSection === item.id
+                  ? 'bg-emerald-500/20 text-emerald-400'
+                  : 'text-stone-400 hover:text-white hover:bg-stone-800/50'
+              }`}
+            >
+              <item.icon size={20} />
+              <span className="font-medium">{item.label}</span>
+            </button>
+          ))}
+        </nav>
 
-      {/* Status Bar */}
-      <div className="bg-stone-900/50 border-b border-stone-800/30 py-2 px-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between text-xs">
-          <div className="flex items-center gap-4">
-            <span className="flex items-center gap-1.5 text-stone-400">
-              <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-              Live
-            </span>
-            <span className="text-stone-500">
-              Last updated: {new Date().toLocaleString('en-NG', { dateStyle: 'medium', timeStyle: 'short' })}
-            </span>
-          </div>
-          <span className="text-stone-500">
-            {commodities.length} commodities • {markets.length} markets
-          </span>
+        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-stone-800">
+          <Link href="/" className="flex items-center gap-2 px-4 py-3 text-stone-400 hover:text-white rounded-xl hover:bg-stone-800/50">
+            <ChevronLeft size={20} />
+            <span>Back to Public Site</span>
+          </Link>
         </div>
-      </div>
+      </aside>
 
-      {/* Main Content */}
-      <main className="relative max-w-7xl mx-auto px-4 sm:px-6 py-6">
-        
-        {/* Dashboard Tab */}
-        {activeTab === 'dashboard' && (
-          <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-              <div>
-                <h2 className="text-3xl font-bold text-white">Market Overview</h2>
-                <p className="text-stone-400 mt-1">Real-time prices across Nigeria&apos;s top markets</p>
-              </div>
-              <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/30 transition-all">
-                <RefreshCw size={16} />
-                Refresh
+      {/* Main content */}
+      <div className="lg:ml-64">
+        {/* Header */}
+        <header className="sticky top-0 z-30 bg-stone-950/80 backdrop-blur-xl border-b border-stone-800">
+          <div className="flex items-center justify-between px-4 sm:px-6 h-16">
+            <div className="flex items-center gap-4">
+              <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-2 text-stone-400 hover:text-white">
+                <Menu size={24} />
               </button>
+              <div>
+                <h1 className="text-xl font-bold text-white capitalize">{activeSection}</h1>
+                <p className="text-sm text-stone-500">
+                  {new Date().toLocaleDateString('en-NG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                </p>
+              </div>
             </div>
-
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <StatCard title="Avg. Grain Price" value={formatCompactPrice(72000)} subValue="per 100kg bag" icon={TrendingUp} color="emerald" />
-              <StatCard title="Best Market" value="Dawanau" subValue="Kano, North-West" icon={MapPin} color="blue" />
-              <StatCard title="Most Volatile" value="Tomatoes" subValue="+12.5% this week" icon={TrendingUp} color="rose" />
-              <StatCard title="Watchlist Items" value={watchlist.length} subValue="commodities tracked" icon={Star} color="amber" />
+            <div className="flex items-center gap-2">
+              <span className="hidden sm:flex items-center gap-1.5 text-emerald-400 text-sm">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                Online
+              </span>
             </div>
+          </div>
+        </header>
 
-            <div className="grid lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2 grid sm:grid-cols-2 gap-4">
-                <div className="bg-stone-900/50 rounded-2xl border border-stone-800/50 p-5">
-                  <div className="flex items-center gap-2 mb-4">
-                    <TrendingUp className="text-rose-400" size={20} />
-                    <h3 className="font-semibold text-white">Price Increases</h3>
-                  </div>
-                  <div className="space-y-3">
-                    {topMovers.gainers.map((item, i) => (
-                      <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-rose-500/5 border border-rose-500/10">
-                        <span className="text-2xl">{item.commodity?.icon}</span>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-white truncate">{item.commodity?.name}</p>
-                          <p className="text-xs text-stone-500">{item.market?.name}</p>
-                        </div>
-                        <span className="text-rose-400 font-semibold">+{item.change.toFixed(1)}%</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="bg-stone-900/50 rounded-2xl border border-stone-800/50 p-5">
-                  <div className="flex items-center gap-2 mb-4">
-                    <TrendingDown className="text-emerald-400" size={20} />
-                    <h3 className="font-semibold text-white">Price Drops</h3>
-                  </div>
-                  <div className="space-y-3">
-                    {topMovers.losers.map((item, i) => (
-                      <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
-                        <span className="text-2xl">{item.commodity?.icon}</span>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-white truncate">{item.commodity?.name}</p>
-                          <p className="text-xs text-stone-500">{item.market?.name}</p>
-                        </div>
-                        <span className="text-emerald-400 font-semibold">{item.change.toFixed(1)}%</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+        {/* Main */}
+        <main className="p-4 sm:p-6">
+          {/* Dashboard */}
+          {activeSection === 'dashboard' && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <StatCard title="Total Commodities" value={commodities.length} icon={Package} color="emerald" />
+                <StatCard title="Active Markets" value={markets.length} icon={MapPin} color="blue" />
+                <StatCard title="Today's Entries" value="0" icon={DollarSign} color="amber" />
+                <StatCard title="Total Records" value="0" icon={BarChart3} color="rose" />
               </div>
 
-              <div className="bg-stone-900/50 rounded-2xl border border-stone-800/50 p-5">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <Star className="text-amber-400" size={20} />
-                    <h3 className="font-semibold text-white">Your Watchlist</h3>
-                  </div>
-                  <button onClick={() => setActiveTab('watchlist')} className="text-xs text-emerald-400 hover:text-emerald-300 flex items-center gap-1">
-                    View All <ChevronRight size={14} />
+              <div className="bg-stone-900/50 rounded-2xl border border-stone-800 p-6">
+                <h3 className="text-lg font-semibold text-white mb-4">Quick Actions</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <button onClick={() => setActiveSection('prices')} className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 hover:bg-emerald-500/20 transition-all text-left">
+                    <DollarSign className="text-emerald-400 mb-2" size={24} />
+                    <p className="font-medium text-white">Enter Prices</p>
+                    <p className="text-xs text-stone-500">Add today's prices</p>
+                  </button>
+                  <button onClick={() => setActiveSection('commodities')} className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/30 hover:bg-blue-500/20 transition-all text-left">
+                    <Package className="text-blue-400 mb-2" size={24} />
+                    <p className="font-medium text-white">Commodities</p>
+                    <p className="text-xs text-stone-500">View all items</p>
+                  </button>
+                  <button onClick={() => setActiveSection('markets')} className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 hover:bg-amber-500/20 transition-all text-left">
+                    <MapPin className="text-amber-400 mb-2" size={24} />
+                    <p className="font-medium text-white">Markets</p>
+                    <p className="text-xs text-stone-500">View locations</p>
+                  </button>
+                  <button onClick={() => setActiveSection('reports')} className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 hover:bg-rose-500/20 transition-all text-left">
+                    <Download className="text-rose-400 mb-2" size={24} />
+                    <p className="font-medium text-white">Export Data</p>
+                    <p className="text-xs text-stone-500">Download CSV</p>
                   </button>
                 </div>
-                <div className="space-y-3">
-                  {watchlist.slice(0, 5).map(id => {
-                    const commodity = commodities.find(c => c.id === id);
-                    const prices = priceData.filter(p => p.commodityId === id);
-                    const avgPriceVal = prices.reduce((sum, p) => sum + p.price, 0) / prices.length;
-                    const avgChange = prices.reduce((sum, p) => sum + p.change, 0) / prices.length;
-                    
-                    return (
-                      <div key={id} className="flex items-center gap-3 p-3 rounded-xl bg-stone-800/30 hover:bg-stone-800/50 transition-all cursor-pointer"
-                        onClick={() => { setSelectedCommodity(commodity); setActiveTab('prices'); }}
-                      >
-                        <span className="text-2xl">{commodity?.icon}</span>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-white truncate">{commodity?.name}</p>
-                          <p className="text-xs text-stone-500">Avg: {formatCompactPrice(avgPriceVal)}</p>
-                        </div>
-                        <PriceChange change={avgChange} />
-                      </div>
-                    );
-                  })}
+              </div>
+
+              <div className="bg-stone-900/50 rounded-2xl border border-stone-800 p-6">
+                <h3 className="text-lg font-semibold text-white mb-4">🚀 Getting Started</h3>
+                <div className="space-y-3 text-stone-400">
+                  <p>1. Go to <span className="text-emerald-400 cursor-pointer" onClick={() => setActiveSection('prices')}>Price Entry</span> to add daily prices</p>
+                  <p>2. Select a market and date</p>
+                  <p>3. Enter prices for each commodity</p>
+                  <p>4. Click Save to store the data</p>
                 </div>
               </div>
             </div>
+          )}
 
-            <div className="bg-stone-900/50 rounded-2xl border border-stone-800/50 p-5">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-white">Regional Price Index</h3>
-                <span className="text-xs text-stone-500">100 = National Average</span>
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                {markets.map(market => {
-                  const index = market.region === 'North-West' ? 85 : 
-                               market.region === 'North-Central' ? 95 :
-                               market.region === 'South-West' ? 112 :
-                               market.region === 'South-East' ? 108 : 100;
-                  
-                  return (
-                    <div key={market.id} className="p-4 rounded-xl bg-stone-800/30 text-center">
-                      <p className="text-sm text-stone-400 mb-1">{market.name}</p>
-                      <p className={`text-2xl font-bold ${index < 100 ? 'text-emerald-400' : index > 100 ? 'text-rose-400' : 'text-white'}`}>
-                        {index}
-                      </p>
-                      <p className="text-xs text-stone-500 mt-1">
-                        {index < 100 ? `${100 - index}% below` : index > 100 ? `${index - 100}% above` : 'At average'}
-                      </p>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Prices Tab */}
-        {activeTab === 'prices' && (
-          <div className="grid lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-1">
-              <div className="bg-stone-900/50 rounded-2xl border border-stone-800/50 overflow-hidden">
-                <div className="p-4 border-b border-stone-800/50">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-500" size={18} />
+          {/* Price Entry */}
+          {activeSection === 'prices' && (
+            <div className="space-y-6">
+              <div className="bg-stone-900/50 rounded-2xl border border-stone-800 p-6">
+                <h3 className="text-lg font-semibold text-white mb-4">Select Market & Date</h3>
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <div className="flex-1">
+                    <label className="block text-sm text-stone-400 mb-2">Market</label>
+                    <select
+                      value={selectedMarket}
+                      onChange={(e) => setSelectedMarket(parseInt(e.target.value))}
+                      className="w-full px-4 py-3 bg-stone-800 border border-stone-700 rounded-xl text-white focus:ring-2 focus:ring-emerald-500 outline-none"
+                    >
+                      {markets.map(m => (
+                        <option key={m.id} value={m.id}>{m.name} - {m.city}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-sm text-stone-400 mb-2">Date</label>
                     <input
-                      type="text"
-                      placeholder="Search commodities..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 bg-stone-800/50 border border-stone-700/50 rounded-xl text-white placeholder-stone-500 focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 outline-none transition-all"
+                      type="date"
+                      value={selectedDate}
+                      onChange={(e) => setSelectedDate(e.target.value)}
+                      className="w-full px-4 py-3 bg-stone-800 border border-stone-700 rounded-xl text-white focus:ring-2 focus:ring-emerald-500 outline-none"
                     />
                   </div>
-                  
-                  <div className="flex flex-wrap gap-2 mt-3">
-                    {categories.map(cat => (
-                      <button
-                        key={cat}
-                        onClick={() => setSelectedCategory(cat)}
-                        className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
-                          selectedCategory === cat
-                            ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                            : 'bg-stone-800/50 text-stone-400 border border-transparent hover:bg-stone-800'
-                        }`}
-                      >
-                        {cat}
-                      </button>
-                    ))}
-                  </div>
                 </div>
+              </div>
 
-                <div className="max-h-[600px] overflow-y-auto p-3 space-y-2">
-                  {filteredCommodities.map(commodity => {
-                    const prices = priceData.filter(p => p.commodityId === commodity.id);
+              <div className="bg-stone-900/50 rounded-2xl border border-stone-800 overflow-hidden">
+                <div className="p-4 border-b border-stone-800 flex items-center justify-between">
+                  <h3 className="font-semibold text-white">
+                    Enter Prices - {markets.find(m => m.id === selectedMarket)?.name}
+                  </h3>
+                  <button
+                    onClick={savePrices}
+                    className="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors"
+                  >
+                    <Save size={16} />
+                    Save All
+                  </button>
+                </div>
+                
+                <div className="divide-y divide-stone-800/50">
+                  {['Grains', 'Legumes', 'Processed', 'Tubers', 'Vegetables', 'Oils'].map(category => {
+                    const items = commodities.filter(c => c.category === category);
+                    if (items.length === 0) return null;
+                    
                     return (
-                      <CommodityCard
-                        key={commodity.id}
-                        commodity={commodity}
-                        priceInfo={prices}
-                        isSelected={selectedCommodity.id === commodity.id}
-                        onClick={() => setSelectedCommodity(commodity)}
-                      />
+                      <div key={category}>
+                        <div className="px-4 py-2 bg-stone-800/30">
+                          <h4 className="text-sm font-medium text-stone-400">{category}</h4>
+                        </div>
+                        <div className="p-4 grid gap-3">
+                          {items.map(commodity => (
+                            <div key={commodity.id} className="flex items-center gap-4 p-3 rounded-xl bg-stone-800/20 hover:bg-stone-800/40 transition-colors">
+                              <span className="text-2xl w-10">{commodity.icon}</span>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-white">{commodity.name}</p>
+                                <p className="text-xs text-stone-500">{commodity.unit}</p>
+                              </div>
+                              <div className="w-36 sm:w-44">
+                                <div className="relative">
+                                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-500">₦</span>
+                                  <input
+                                    type="number"
+                                    value={priceEntries[commodity.id] || ''}
+                                    onChange={(e) => handlePriceChange(commodity.id, e.target.value)}
+                                    placeholder="0"
+                                    className="w-full pl-8 pr-4 py-2 bg-stone-800 border border-stone-700 rounded-lg text-white text-right focus:ring-2 focus:ring-emerald-500 outline-none"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     );
                   })}
                 </div>
               </div>
             </div>
+          )}
 
-            <div className="lg:col-span-2 space-y-6">
-              <div className="bg-stone-900/50 rounded-2xl border border-stone-800/50 p-6">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 rounded-2xl bg-stone-800/50 flex items-center justify-center text-4xl">
-                      {selectedCommodity.icon}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-3">
-                        <h2 className="text-2xl font-bold text-white">{selectedCommodity.name}</h2>
-                        <button onClick={() => toggleWatchlist(selectedCommodity.id)} className="p-1.5 rounded-lg hover:bg-stone-800 transition-all">
-                          {watchlist.includes(selectedCommodity.id) ? (
-                            <Star size={20} className="text-amber-400 fill-amber-400" />
-                          ) : (
-                            <StarOff size={20} className="text-stone-500" />
-                          )}
-                        </button>
-                      </div>
-                      <p className="text-stone-400">{selectedCommodity.category} • {selectedCommodity.unit}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-                  <div className="p-4 rounded-xl bg-stone-800/30">
-                    <p className="text-xs text-stone-500 mb-1">Average Price</p>
-                    <p className="text-xl font-bold text-white">{formatPrice(avgPrice)}</p>
-                  </div>
-                  <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-                    <p className="text-xs text-emerald-400 mb-1">Lowest Price</p>
-                    <p className="text-xl font-bold text-emerald-400">{formatPrice(lowestPrice?.price)}</p>
-                    <p className="text-xs text-stone-500 mt-1">{lowestPrice?.market?.name}</p>
-                  </div>
-                  <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20">
-                    <p className="text-xs text-rose-400 mb-1">Highest Price</p>
-                    <p className="text-xl font-bold text-rose-400">{formatPrice(highestPrice?.price)}</p>
-                    <p className="text-xs text-stone-500 mt-1">{highestPrice?.market?.name}</p>
-                  </div>
-                  <div className="p-4 rounded-xl bg-stone-800/30">
-                    <p className="text-xs text-stone-500 mb-1">Price Spread</p>
-                    <p className="text-xl font-bold text-white">{formatPrice(priceSpread)}</p>
-                    <p className="text-xs text-stone-500 mt-1">Potential savings</p>
-                  </div>
+          {/* Commodities */}
+          {activeSection === 'commodities' && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-bold text-white">Commodities</h2>
+                  <p className="text-stone-500">{commodities.length} items tracked</p>
                 </div>
               </div>
 
-              <div className="bg-stone-900/50 rounded-2xl border border-stone-800/50 p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-semibold text-white">Price Trend</h3>
-                  <div className="flex items-center gap-1">
-                    {['7d', '30d', '90d'].map(range => (
-                      <button
-                        key={range}
-                        onClick={() => setTimeRange(range)}
-                        className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
-                          timeRange === range ? 'bg-emerald-500/20 text-emerald-400' : 'text-stone-400 hover:text-white'
-                        }`}
-                      >
-                        {range}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={historicalData}>
-                      <defs>
-                        <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-                          <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#292524" />
-                      <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#78716c' }} stroke="#44403c" tickLine={false} />
-                      <YAxis tickFormatter={(value) => formatCompactPrice(value)} tick={{ fontSize: 11, fill: '#78716c' }} stroke="#44403c" tickLine={false} axisLine={false} />
-                      <Tooltip 
-                        formatter={(value) => [formatPrice(value), 'Price']}
-                        contentStyle={{ backgroundColor: '#1c1917', border: '1px solid #292524', borderRadius: '12px' }}
-                        labelStyle={{ color: '#a8a29e' }}
-                      />
-                      <Area type="monotone" dataKey="price" stroke="#10b981" strokeWidth={2} fill="url(#colorPrice)" />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-
-              <div className="bg-stone-900/50 rounded-2xl border border-stone-800/50 p-6">
-                <h3 className="font-semibold text-white mb-4">Prices by Market</h3>
-                <div className="space-y-3">
-                  {commodityPrices.map((item, index) => (
-                    <MarketPriceRow key={item.marketId} market={item.market} priceInfo={item} avgPrice={avgPrice} rank={index + 1} />
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Markets Tab */}
-        {activeTab === 'markets' && (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold text-white">Markets Directory</h2>
-              <p className="text-stone-400 mt-1">Major commodity markets across Nigeria</p>
-            </div>
-
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {markets.map(market => {
-                const marketPrices = priceData.filter(p => p.marketId === market.id);
-                const avgChange = marketPrices.reduce((sum, p) => sum + p.change, 0) / marketPrices.length;
-                
-                return (
-                  <div key={market.id} className="bg-stone-900/50 rounded-2xl border border-stone-800/50 p-5 hover:border-stone-700/50 transition-all">
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <h3 className="text-lg font-semibold text-white">{market.name}</h3>
-                        <p className="text-stone-400 text-sm flex items-center gap-1">
-                          <MapPin size={14} />
-                          {market.city}, {market.state}
-                        </p>
-                      </div>
-                      <span className={`px-2 py-1 rounded-lg text-xs font-medium ${
-                        avgChange > 0 ? 'bg-rose-500/20 text-rose-400' : 'bg-emerald-500/20 text-emerald-400'
-                      }`}>
-                        {avgChange > 0 ? '+' : ''}{avgChange.toFixed(1)}%
-                      </span>
-                    </div>
-                    
-                    <p className="text-stone-500 text-sm mb-4">{market.description}</p>
-                    
-                    <div className="flex items-center justify-between pt-3 border-t border-stone-800/50">
-                      <span className="text-xs text-stone-500">{market.region}</span>
-                      <div className="flex gap-1">
-                        {commodities.slice(0, 5).map(c => (
-                          <span key={c.id} className="text-sm" title={c.name}>{c.icon}</span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Watchlist Tab */}
-        {activeTab === 'watchlist' && (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold text-white">Your Watchlist</h2>
-              <p className="text-stone-400 mt-1">Track your favorite commodities</p>
-            </div>
-
-            {watchlist.length === 0 ? (
-              <div className="bg-stone-900/50 rounded-2xl border border-stone-800/50 p-12 text-center">
-                <StarOff size={48} className="text-stone-600 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-white mb-2">No items in watchlist</h3>
-                <p className="text-stone-500 mb-4">Star commodities to add them to your watchlist</p>
-                <button onClick={() => setActiveTab('prices')} className="px-4 py-2 rounded-lg bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/30 transition-all">
-                  Browse Commodities
-                </button>
-              </div>
-            ) : (
-              <div className="grid md:grid-cols-2 gap-4">
-                {watchlist.map(id => {
-                  const commodity = commodities.find(c => c.id === id);
-                  const prices = priceData.filter(p => p.commodityId === id);
-                  const avgPriceVal = prices.reduce((sum, p) => sum + p.price, 0) / prices.length;
-                  const avgChange = prices.reduce((sum, p) => sum + p.change, 0) / prices.length;
-                  const lowestPriceItem = prices.reduce((min, p) => p.price < min.price ? p : min, prices[0]);
-                  const lowestMarket = markets.find(m => m.id === lowestPriceItem?.marketId);
-                  
-                  return (
-                    <div key={id} className="bg-stone-900/50 rounded-2xl border border-stone-800/50 p-5">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                          <span className="text-3xl">{commodity?.icon}</span>
-                          <div>
-                            <h3 className="font-semibold text-white">{commodity?.name}</h3>
-                            <p className="text-sm text-stone-500">{commodity?.unit}</p>
+              <div className="bg-stone-900/50 rounded-2xl border border-stone-800 overflow-hidden">
+                <table className="w-full">
+                  <thead className="bg-stone-800/50">
+                    <tr>
+                      <th className="text-left p-4 text-sm font-medium text-stone-400">Commodity</th>
+                      <th className="text-left p-4 text-sm font-medium text-stone-400 hidden sm:table-cell">Category</th>
+                      <th className="text-left p-4 text-sm font-medium text-stone-400 hidden md:table-cell">Unit</th>
+                      <th className="text-left p-4 text-sm font-medium text-stone-400">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-stone-800/50">
+                    {commodities.map(item => (
+                      <tr key={item.id} className="hover:bg-stone-800/30">
+                        <td className="p-4">
+                          <div className="flex items-center gap-3">
+                            <span className="text-2xl">{item.icon}</span>
+                            <div>
+                              <span className="font-medium text-white">{item.name}</span>
+                              <p className="text-xs text-stone-500 sm:hidden">{item.category}</p>
+                            </div>
                           </div>
-                        </div>
-                        <button onClick={() => toggleWatchlist(id)} className="p-2 rounded-lg hover:bg-stone-800 transition-all">
-                          <Star size={20} className="text-amber-400 fill-amber-400" />
-                        </button>
+                        </td>
+                        <td className="p-4 text-stone-400 hidden sm:table-cell">{item.category}</td>
+                        <td className="p-4 text-stone-400 hidden md:table-cell">{item.unit}</td>
+                        <td className="p-4">
+                          <span className="px-2 py-1 rounded-full text-xs bg-emerald-500/20 text-emerald-400">
+                            Active
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Markets */}
+          {activeSection === 'markets' && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-bold text-white">Markets</h2>
+                  <p className="text-stone-500">{markets.length} locations tracked</p>
+                </div>
+              </div>
+
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {markets.map(market => (
+                  <div key={market.id} className="bg-stone-900/50 rounded-2xl border border-stone-800 p-5 hover:border-emerald-500/30 transition-all">
+                    <div className="flex items-start gap-3 mb-3">
+                      <div className="p-3 rounded-xl bg-emerald-500/10">
+                        <MapPin className="text-emerald-400" size={20} />
                       </div>
-                      
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="p-3 rounded-xl bg-stone-800/30">
-                          <p className="text-xs text-stone-500">Avg Price</p>
-                          <p className="text-lg font-bold text-white">{formatPrice(avgPriceVal)}</p>
-                          <PriceChange change={avgChange} />
-                        </div>
-                        <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-                          <p className="text-xs text-emerald-400">Best Price</p>
-                          <p className="text-lg font-bold text-emerald-400">{formatPrice(lowestPriceItem?.price)}</p>
-                          <p className="text-xs text-stone-500 flex items-center gap-1 mt-1">
-                            <MapPin size={10} />
-                            {lowestMarket?.name}
-                          </p>
-                        </div>
+                      <div>
+                        <h3 className="font-semibold text-white">{market.name}</h3>
+                        <p className="text-sm text-stone-400">{market.city}, {market.state}</p>
                       </div>
-                      
-                      <button onClick={() => { setSelectedCommodity(commodity); setActiveTab('prices'); }} className="w-full mt-4 py-2 text-sm text-emerald-400 hover:text-emerald-300 flex items-center justify-center gap-1">
-                        View Details <ChevronRight size={16} />
-                      </button>
                     </div>
-                  );
-                })}
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="px-2 py-1 rounded-full bg-stone-800 text-stone-400">{market.region}</span>
+                      <span className="px-2 py-1 rounded-full bg-emerald-500/20 text-emerald-400">Active</span>
+                    </div>
+                  </div>
+                ))}
               </div>
-            )}
-          </div>
-        )}
-      </main>
+            </div>
+          )}
 
-      {/* Footer */}
-      <footer className="relative mt-12 border-t border-stone-800/50 bg-stone-900/30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center">
-                <span className="text-sm font-black text-white">₦</span>
+          {/* Reports */}
+          {activeSection === 'reports' && (
+            <div className="space-y-6">
+              <h2 className="text-xl font-bold text-white">Reports & Export</h2>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="bg-stone-900/50 rounded-2xl border border-stone-800 p-6">
+                  <Download className="text-emerald-400 mb-3" size={32} />
+                  <h3 className="font-semibold text-white mb-2">Export All Prices</h3>
+                  <p className="text-sm text-stone-500 mb-4">Download complete price data as CSV</p>
+                  <button className="w-full py-2 bg-emerald-500/20 text-emerald-400 rounded-lg hover:bg-emerald-500/30 transition-colors">
+                    Download CSV
+                  </button>
+                </div>
+                <div className="bg-stone-900/50 rounded-2xl border border-stone-800 p-6">
+                  <Calendar className="text-blue-400 mb-3" size={32} />
+                  <h3 className="font-semibold text-white mb-2">Date Range Report</h3>
+                  <p className="text-sm text-stone-500 mb-4">Export prices for specific period</p>
+                  <button className="w-full py-2 bg-blue-500/20 text-blue-400 rounded-lg hover:bg-blue-500/30 transition-colors">
+                    Select Dates
+                  </button>
+                </div>
               </div>
-              <span className="font-bold text-white">PriceNija</span>
+              
+              <div className="bg-stone-900/50 rounded-2xl border border-stone-800 p-6">
+                <h3 className="font-semibold text-white mb-4">📊 Coming Soon</h3>
+                <ul className="space-y-2 text-stone-400">
+                  <li>• Price trend analysis</li>
+                  <li>• Market comparison reports</li>
+                  <li>• Weekly/Monthly summaries</li>
+                  <li>• PDF report generation</li>
+                </ul>
+              </div>
             </div>
-            <p className="text-sm text-stone-500 text-center">
-              Empowering farmers, traders, and consumers with real-time market intelligence
-            </p>
-            <div className="flex items-center gap-6 text-sm text-stone-500">
-              <a href="#" className="hover:text-white transition-colors">About</a>
-              <a href="#" className="hover:text-white transition-colors">API</a>
-              <a href="#" className="hover:text-white transition-colors">Contact</a>
-            </div>
-          </div>
+          )}
+        </main>
+      </div>
 
-{/* Contact Details */}
-          <div className="mt-6 pt-6 border-t border-stone-800/50 flex flex-col md:flex-row items-center justify-center gap-4 text-sm text-stone-400">
-                        <span className="font-medium text-white">Jamiu Awoke</span>
-                        <span className="hidden md:inline text-stone-600">•</span>
-                        <a href="mailto:jamiu.awoke@gmail.com" className="hover:text-emerald-400 transition-colors">jamiu.awoke@gmail.com</a>
-                        <span className="hidden md:inline text-stone-600">•</span>
-                        <a href="tel:+12142070261" className="hover:text-emerald-400 transition-colors">214-207-0261</a>
-            </div>
-          <div className="mt-6 pt-6 border-t border-stone-800/50 text-center text-xs text-stone-600">
-            © {new Date().getFullYear()} PriceNija. Built for Nigeria 🇳🇬
-          </div>
+      {/* Toast */}
+      {toast && (
+        <div className={`fixed bottom-4 right-4 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg ${
+          toast.type === 'success' ? 'bg-emerald-500' : 'bg-rose-500'
+        } text-white`}>
+          {toast.type === 'success' ? <Check size={20} /> : <X size={20} />}
+          <span>{toast.message}</span>
+          <button onClick={() => setToast(null)} className="p-1 hover:bg-white/20 rounded">
+            <X size={16} />
+          </button>
         </div>
-      </footer>
+      )}
     </div>
   );
 }
