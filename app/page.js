@@ -379,7 +379,7 @@ export default function PriceNija() {
         <div className="max-w-7xl mx-auto px-4 py-8">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="flex items-center gap-2"><div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center"><span className="text-sm font-bold">₦</span></div><span className="font-bold">PriceNija</span></div>
-            <p className="text-gray-400 text-sm text-center">Empowering farmers, traders, and consumers with real-time market intelligence</p>
+            <p className="text-gray-400 text-sm text-center">Track real-time agricultural commodity prices across Nigerian markets. Empowering farmers, traders, and consumers with accurate market data.</p>
             <div className="flex gap-4 text-sm text-gray-400"><button onClick={() => setActiveTab('dashboard')} className="hover:text-white transition">About</button><a href="mailto:support@pricenija.com" className="hover:text-white transition">Contact</a></div>
           </div>
           <div className="mt-6 pt-6 border-t border-gray-800 text-center text-gray-500 text-sm">© {new Date().getFullYear()} PriceNija. All rights reserved.</div>
