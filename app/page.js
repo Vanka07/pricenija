@@ -538,7 +538,7 @@ export default function PriceNija() {
           <p className="text-center text-gray-400 mt-4">
             {authMode === 'login' ? (
               <>
-                Don't have an account?{' '}
+                Don&apos;t have an account?{' '}
                 <button 
                   onClick={() => setAuthMode('register')}
                   className="text-green-400 hover:underline"
@@ -761,7 +761,7 @@ export default function PriceNija() {
           <div className="space-y-6">
             <div>
               <h1 className="text-2xl font-bold mb-1">Market Overview</h1>
-              <p className="text-gray-400">Real-time prices across Nigeria's top markets</p>
+              <p className="text-gray-400">Real-time prices across Nigeria&apos;s top markets</p>
             </div>
 
             {!hasData ? (
@@ -769,7 +769,7 @@ export default function PriceNija() {
                 <AlertCircle size={48} className="text-yellow-500 mx-auto mb-4" />
                 <h3 className="text-xl font-semibold mb-2">No Price Data Yet</h3>
                 <p className="text-gray-400 mb-4">
-                  Prices haven't been entered for today. Check back later or contact the admin.
+                  Prices haven&apos;t been entered for today. Check back later or contact the admin.
                 </p>
               </div>
             ) : (
@@ -1203,41 +1203,42 @@ export default function PriceNija() {
                 const marketData = getPriceData.marketPrices[market.id];
                 return (
                   <Link href={"/markets/" + market.id} key={market.id}>
-                            <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800 hover:border-gray-700 transition cursor-pointer">
-                    <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <h3 className="text-xl font-bold">{market.name}</h3>
-                        <p className="text-gray-400 flex items-center gap-1 mt-1">
-                          <MapPin size={14} />
-                          {market.city}, {market.state}
-                        </p>
+                    <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800 hover:border-gray-700 transition cursor-pointer">
+                      <div className="flex justify-between items-start mb-4">
+                        <div>
+                          <h3 className="text-xl font-bold">{market.name}</h3>
+                          <p className="text-gray-400 flex items-center gap-1 mt-1">
+                            <MapPin size={14} />
+                            {market.city}, {market.state}
+                          </p>
+                        </div>
+                        {marketData && (
+                          <span className={`px-2 py-1 rounded-lg text-sm font-medium ${
+                            marketData.avgChange >= 0 
+                              ? 'bg-green-500/20 text-green-400' 
+                              : 'bg-red-500/20 text-red-400'
+                          }`}>
+                            {marketData.avgChange >= 0 ? '+' : ''}{marketData.avgChange.toFixed(1)}%
+                          </span>
+                        )}
                       </div>
-                      {marketData && (
-                        <span className={`px-2 py-1 rounded-lg text-sm font-medium ${
-                          marketData.avgChange >= 0 
-                            ? 'bg-green-500/20 text-green-400' 
-                            : 'bg-red-500/20 text-red-400'
-                        }`}>
-                          {marketData.avgChange >= 0 ? '+' : ''}{marketData.avgChange.toFixed(1)}%
-                        </span>
-                      )}
-                    </div>
-                    
-                    <p className="text-gray-500 text-sm mb-4">{market.description}</p>
-                    
-                    <div className="flex items-center justify-between pt-4 border-t border-gray-800">
-                      <span className="text-sm text-gray-400">{market.region}</span>
-                      <div className="flex gap-1">
-                        {['🌽', '🌽', '🍚', '🍚', '🌾'].map((emoji, i) => (
-                          <span key={i} className="text-sm">{emoji}</span>
-                        ))}
+                      
+                      <p className="text-gray-500 text-sm mb-4">{market.description}</p>
+                      
+                      <div className="flex items-center justify-between pt-4 border-t border-gray-800">
+                        <span className="text-sm text-gray-400">{market.region}</span>
+                        <div className="flex gap-1">
+                          {['🌽', '🌽', '🍚', '🍚', '🌾'].map((emoji, i) => (
+                            <span key={i} className="text-sm">{emoji}</span>
+                          ))}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                        </Link>
+                  </Link>
                 );
               })}
-            </div>    
+            </div>
+          </div>
         )}
 
         {/* ============================================ */}
