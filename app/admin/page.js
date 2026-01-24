@@ -32,13 +32,16 @@ export default function AdminDashboard() {
   const [toast, setToast] = useState(null);
   const [stats, setStats] = useState({ todayEntries: 0, totalRecords: 0 });
 
+  // Mobile menu state
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   // Check authentication on mount
   useEffect(() => {
     const checkAuth = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         setUser(user);
-        
+
         if (user) {
           // Check if user is admin
           const { data: userData, error } = await supabase
@@ -46,20 +49,18 @@ export default function AdminDashboard() {
             .select('role')
             .eq('id', user.id)
             .single();
-          
+
           if (!error && userData?.role === 'admin') {
             setIsAdmin(true);
           } else {
             // Auto-promote first user or specific email as admin
-            // You can customize this logic
             const adminEmails = ['admin@pricenija.com', 'jamiu.awoke@gmail.com'];
             if (adminEmails.includes(user.email)) {
-              // Update user role to admin
               await supabase
                 .from('users')
-                .upsert({ 
-                  id: user.id, 
-                  email: user.email, 
+                .upsert({
+                  id: user.id,
+                  email: user.email,
                   role: 'admin',
                   updated_at: new Date().toISOString()
                 }, { onConflict: 'id' });
@@ -104,16 +105,17 @@ export default function AdminDashboard() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      
+
       // Fetch markets
       const { data: marketsData, error: marketsError } = await supabase
         .from('markets')
         .select('*')
         .eq('is_active', true)
         .order('name');
-      
+
       if (marketsError) throw marketsError;
       setMarkets(marketsData || []);
+
       if (marketsData?.length > 0 && !selectedMarket) {
         setSelectedMarket(marketsData[0].id);
       }
@@ -125,7 +127,7 @@ export default function AdminDashboard() {
         .eq('is_active', true)
         .order('category')
         .order('name');
-      
+
       if (commoditiesError) throw commoditiesError;
       setCommodities(commoditiesData || []);
 
@@ -135,7 +137,7 @@ export default function AdminDashboard() {
         .from('prices')
         .select('*', { count: 'exact', head: true })
         .eq('date', today);
-      
+
       const { count: totalCount } = await supabase
         .from('prices')
         .select('*', { count: 'exact', head: true });
@@ -168,7 +170,6 @@ export default function AdminDashboard() {
         priceMap[p.commodity_id] = p.price;
       });
       setPrices(priceMap);
-
     } catch (err) {
       console.error('Error fetching prices:', err);
     }
@@ -192,9 +193,9 @@ export default function AdminDashboard() {
       if (adminEmails.includes(loginEmail)) {
         await supabase
           .from('users')
-          .upsert({ 
-            id: data.user.id, 
-            email: loginEmail, 
+          .upsert({
+            id: data.user.id,
+            email: loginEmail,
             role: 'admin',
             updated_at: new Date().toISOString()
           }, { onConflict: 'id' });
@@ -206,14 +207,13 @@ export default function AdminDashboard() {
           .select('role')
           .eq('id', data.user.id)
           .single();
-        
+
         if (userData?.role !== 'admin') {
           await supabase.auth.signOut();
           throw new Error('You do not have admin access. Contact the administrator.');
         }
         setIsAdmin(true);
       }
-
     } catch (err) {
       setLoginError(err.message);
     } finally {
@@ -229,7 +229,10 @@ export default function AdminDashboard() {
 
   const handlePriceChange = (commodityId, value) => {
     const numValue = parseFloat(value) || 0;
-    setPrices(prev => ({ ...prev, [commodityId]: numValue }));
+    setPrices(prev => ({
+      ...prev,
+      [commodityId]: numValue
+    }));
   };
 
   const savePrices = async () => {
@@ -267,7 +270,6 @@ export default function AdminDashboard() {
 
       showToast(`${pricesToSave.length} prices saved successfully!`, 'success');
       fetchData(); // Refresh stats
-
     } catch (err) {
       console.error('Error saving prices:', err);
       showToast('Error saving prices: ' + err.message, 'error');
@@ -292,6 +294,15 @@ export default function AdminDashboard() {
     acc[commodity.category].push(commodity);
     return acc;
   }, {});
+
+  // Navigation items
+  const navItems = [
+    { id: 'dashboard', icon: Home, label: 'Dashboard' },
+    { id: 'prices', icon: DollarSign, label: 'Price Entry' },
+    { id: 'commodities', icon: Package, label: 'Commodities' },
+    { id: 'markets', icon: MapPin, label: 'Markets' },
+    { id: 'reports', icon: BarChart3, label: 'Reports' },
+  ];
 
   // ============================================
   // LOADING STATE
@@ -379,7 +390,7 @@ export default function AdminDashboard() {
             </form>
 
             <div className="mt-6 pt-6 border-t border-gray-800">
-              <Link 
+              <Link
                 href="/"
                 className="flex items-center justify-center gap-2 text-gray-400 hover:text-white"
               >
@@ -397,23 +408,53 @@ export default function AdminDashboard() {
   // MAIN ADMIN DASHBOARD
   // ============================================
   return (
-    <div className="min-h-screen bg-gray-950 flex">
+    <div className="min-h-screen bg-gray-950 flex flex-col md:flex-row">
       {/* Toast */}
       {toast && (
-        <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg flex items-center gap-2 ${
+        <div className={`fixed top-4 left-4 right-4 md:left-auto md:right-4 md:w-auto z-50 px-4 py-3 rounded-lg shadow-lg flex items-center gap-2 ${
           toast.type === 'success' ? 'bg-green-500' : 'bg-red-500'
         } text-white`}>
           {toast.type === 'success' ? <Check size={18} /> : <X size={18} />}
-          {toast.message}
+          <span className="flex-1">{toast.message}</span>
         </div>
       )}
 
-      {/* Sidebar */}
-      <aside className="w-64 bg-gray-900 border-r border-gray-800 flex flex-col">
-        <div className="p-4 border-b border-gray-800">
+      {/* Mobile Header */}
+      <div className="md:hidden bg-gray-900 border-b border-gray-800 p-4 flex items-center justify-between sticky top-0 z-40">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
+            <span className="text-sm font-bold text-white">₦</span>
+          </div>
+          <span className="font-bold text-white">Admin</span>
+        </div>
+        <button
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          className="p-2 text-gray-400 hover:text-white"
+        >
+          {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+        </button>
+      </div>
+
+      {/* Mobile Menu Overlay */}
+      {mobileMenuOpen && (
+        <div
+          className="md:hidden fixed inset-0 bg-black/50 z-40"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Sidebar - Desktop always visible, Mobile slide-in */}
+      <aside className={`
+        fixed md:static inset-y-0 left-0 z-50
+        w-64 bg-gray-900 border-r border-gray-800 flex flex-col
+        transform transition-transform duration-300 ease-in-out
+        ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+      `}>
+        {/* Logo - Hidden on mobile (shown in header) */}
+        <div className="hidden md:block p-4 border-b border-gray-800">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-green-500 rounded-xl flex items-center justify-center">
-              <span className="text-lg font-bold text-white">N</span>
+              <span className="text-lg font-bold text-white">₦</span>
             </div>
             <div>
               <h1 className="font-bold text-white">PriceNija</h1>
@@ -422,17 +463,25 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <nav className="flex-1 p-4 space-y-1">
-          {[
-            { id: 'dashboard', icon: Home, label: 'Dashboard' },
-            { id: 'prices', icon: DollarSign, label: 'Price Entry' },
-            { id: 'commodities', icon: Package, label: 'Commodities' },
-            { id: 'markets', icon: MapPin, label: 'Markets' },
-            { id: 'reports', icon: BarChart3, label: 'Reports' },
-          ].map((item) => (
+        {/* Mobile close button area */}
+        <div className="md:hidden p-4 border-b border-gray-800 flex items-center justify-between">
+          <span className="font-bold text-white">Menu</span>
+          <button
+            onClick={() => setMobileMenuOpen(false)}
+            className="p-2 text-gray-400 hover:text-white"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+          {navItems.map((item) => (
             <button
               key={item.id}
-              onClick={() => setActiveTab(item.id)}
+              onClick={() => {
+                setActiveTab(item.id);
+                setMobileMenuOpen(false);
+              }}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition ${
                 activeTab === item.id
                   ? 'bg-green-500/20 text-green-400'
@@ -448,7 +497,7 @@ export default function AdminDashboard() {
         <div className="p-4 border-t border-gray-800 space-y-2">
           <div className="px-4 py-2 text-sm text-gray-400">
             <p>Signed in as:</p>
-            <p className="text-white truncate">{user.email}</p>
+            <p className="text-white truncate text-xs sm:text-sm">{user.email}</p>
           </div>
           <button
             onClick={handleLogout}
@@ -462,7 +511,7 @@ export default function AdminDashboard() {
             className="w-full flex items-center gap-3 px-4 py-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition"
           >
             <ChevronLeft size={18} />
-            Back to Public Site
+            Back to Site
           </Link>
         </div>
       </aside>
@@ -470,49 +519,52 @@ export default function AdminDashboard() {
       {/* Main Content */}
       <main className="flex-1 overflow-auto">
         {loading ? (
-          <div className="flex items-center justify-center h-full">
+          <div className="flex items-center justify-center h-64 md:h-full">
             <Loader2 size={40} className="animate-spin text-green-500" />
           </div>
         ) : (
-          <div className="p-6">
+          <div className="p-4 md:p-6">
             {/* ============================================ */}
             {/* DASHBOARD TAB */}
             {/* ============================================ */}
             {activeTab === 'dashboard' && (
-              <div className="space-y-6">
+              <div className="space-y-4 md:space-y-6">
                 <div>
-                  <h2 className="text-2xl font-bold text-white">Dashboard</h2>
-                  <p className="text-gray-400">
-                    {new Date().toLocaleDateString('en-NG', { 
-                      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+                  <h2 className="text-xl md:text-2xl font-bold text-white">Dashboard</h2>
+                  <p className="text-sm md:text-base text-gray-400">
+                    {new Date().toLocaleDateString('en-NG', {
+                      weekday: 'long',
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
                     })}
                   </p>
                 </div>
 
                 {/* Stats */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div className="bg-green-600 rounded-xl p-4">
-                    <p className="text-green-200 text-sm">Total Commodities</p>
-                    <p className="text-3xl font-bold text-white mt-1">{commodities.length}</p>
+                <div className="grid grid-cols-2 gap-3 md:gap-4">
+                  <div className="bg-green-600 rounded-xl p-3 md:p-4">
+                    <p className="text-green-200 text-xs md:text-sm">Total Commodities</p>
+                    <p className="text-2xl md:text-3xl font-bold text-white mt-1">{commodities.length}</p>
                   </div>
-                  <div className="bg-blue-600 rounded-xl p-4">
-                    <p className="text-blue-200 text-sm">Active Markets</p>
-                    <p className="text-3xl font-bold text-white mt-1">{markets.length}</p>
+                  <div className="bg-blue-600 rounded-xl p-3 md:p-4">
+                    <p className="text-blue-200 text-xs md:text-sm">Active Markets</p>
+                    <p className="text-2xl md:text-3xl font-bold text-white mt-1">{markets.length}</p>
                   </div>
-                  <div className="bg-orange-600 rounded-xl p-4">
-                    <p className="text-orange-200 text-sm">Today's Entries</p>
-                    <p className="text-3xl font-bold text-white mt-1">{stats.todayEntries}</p>
+                  <div className="bg-orange-600 rounded-xl p-3 md:p-4">
+                    <p className="text-orange-200 text-xs md:text-sm">Today's Entries</p>
+                    <p className="text-2xl md:text-3xl font-bold text-white mt-1">{stats.todayEntries}</p>
                   </div>
-                  <div className="bg-purple-600 rounded-xl p-4">
-                    <p className="text-purple-200 text-sm">Total Records</p>
-                    <p className="text-3xl font-bold text-white mt-1">{stats.totalRecords}</p>
+                  <div className="bg-purple-600 rounded-xl p-3 md:p-4">
+                    <p className="text-purple-200 text-xs md:text-sm">Total Records</p>
+                    <p className="text-2xl md:text-3xl font-bold text-white mt-1">{stats.totalRecords}</p>
                   </div>
                 </div>
 
                 {/* Quick Actions */}
-                <div className="bg-gray-900 rounded-xl p-6 border border-gray-800">
+                <div className="bg-gray-900 rounded-xl p-4 md:p-6 border border-gray-800">
                   <h3 className="font-semibold text-white mb-4">🚀 Getting Started</h3>
-                  <ol className="space-y-2 text-gray-300">
+                  <ol className="space-y-2 text-sm md:text-base text-gray-300">
                     <li>1. Go to <button onClick={() => setActiveTab('prices')} className="text-green-400 hover:underline">Price Entry</button> to add daily prices</li>
                     <li>2. Select a market and date</li>
                     <li>3. Enter prices for each commodity</li>
@@ -526,16 +578,16 @@ export default function AdminDashboard() {
             {/* PRICE ENTRY TAB */}
             {/* ============================================ */}
             {activeTab === 'prices' && (
-              <div className="space-y-6">
-                <div className="flex justify-between items-start">
+              <div className="space-y-4 md:space-y-6">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
                   <div>
-                    <h2 className="text-2xl font-bold text-white">Price Entry</h2>
-                    <p className="text-gray-400">Enter commodity prices for markets</p>
+                    <h2 className="text-xl md:text-2xl font-bold text-white">Price Entry</h2>
+                    <p className="text-sm md:text-base text-gray-400">Enter commodity prices for markets</p>
                   </div>
                   <button
                     onClick={savePrices}
                     disabled={saving}
-                    className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-xl font-medium disabled:opacity-50"
+                    className="flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 md:px-6 py-3 rounded-xl font-medium disabled:opacity-50 w-full sm:w-auto"
                   >
                     {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
                     Save All
@@ -543,15 +595,15 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* Market & Date Selection */}
-                <div className="bg-gray-900 rounded-xl p-6 border border-gray-800">
+                <div className="bg-gray-900 rounded-xl p-4 md:p-6 border border-gray-800">
                   <h3 className="font-semibold text-white mb-4">Select Market & Date</h3>
-                  <div className="grid md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm text-gray-400 mb-2">Market</label>
                       <select
                         value={selectedMarket}
                         onChange={(e) => setSelectedMarket(e.target.value)}
-                        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-green-500"
+                        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-green-500 text-sm md:text-base"
                       >
                         {markets.map((market) => (
                           <option key={market.id} value={market.id}>
@@ -566,33 +618,33 @@ export default function AdminDashboard() {
                         type="date"
                         value={selectedDate}
                         onChange={(e) => setSelectedDate(e.target.value)}
-                        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-green-500"
+                        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-green-500 text-sm md:text-base"
                       />
                     </div>
                   </div>
                 </div>
 
                 {/* Price Entry Form */}
-                <div className="bg-gray-900 rounded-xl p-6 border border-gray-800">
-                  <h3 className="font-semibold text-white mb-4">
+                <div className="bg-gray-900 rounded-xl p-4 md:p-6 border border-gray-800">
+                  <h3 className="font-semibold text-white mb-4 text-sm md:text-base">
                     Enter Prices - {getMarketName(selectedMarket)}
                   </h3>
-                  
+
                   {Object.entries(groupedCommodities).map(([category, items]) => (
                     <div key={category} className="mb-6">
-                      <h4 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-3">
+                      <h4 className="text-xs md:text-sm font-medium text-gray-400 uppercase tracking-wider mb-3">
                         {category}
                       </h4>
                       <div className="space-y-2">
                         {items.map((commodity) => (
-                          <div 
+                          <div
                             key={commodity.id}
-                            className="flex items-center justify-between p-4 bg-gray-800 rounded-xl"
+                            className="flex flex-col sm:flex-row sm:items-center justify-between p-3 md:p-4 bg-gray-800 rounded-xl gap-3"
                           >
                             <div className="flex items-center gap-3">
-                              <span className="text-2xl">{commodity.icon}</span>
+                              <span className="text-xl md:text-2xl">{commodity.icon}</span>
                               <div>
-                                <p className="font-medium text-white">{commodity.name}</p>
+                                <p className="font-medium text-white text-sm md:text-base">{commodity.name}</p>
                                 <p className="text-xs text-gray-400">{commodity.unit}</p>
                               </div>
                             </div>
@@ -603,7 +655,7 @@ export default function AdminDashboard() {
                                 value={prices[commodity.id] || ''}
                                 onChange={(e) => handlePriceChange(commodity.id, e.target.value)}
                                 placeholder="0"
-                                className="w-32 bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-right focus:outline-none focus:border-green-500"
+                                className="w-full sm:w-28 md:w-32 bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-right focus:outline-none focus:border-green-500 text-sm md:text-base"
                               />
                             </div>
                           </div>
@@ -619,38 +671,61 @@ export default function AdminDashboard() {
             {/* COMMODITIES TAB */}
             {/* ============================================ */}
             {activeTab === 'commodities' && (
-              <div className="space-y-6">
-                <h2 className="text-2xl font-bold text-white">Commodities</h2>
-                <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
-                  <table className="w-full">
-                    <thead className="bg-gray-800">
-                      <tr>
-                        <th className="text-left p-4 text-gray-400 font-medium">Commodity</th>
-                        <th className="text-left p-4 text-gray-400 font-medium">Category</th>
-                        <th className="text-left p-4 text-gray-400 font-medium">Unit</th>
-                        <th className="text-left p-4 text-gray-400 font-medium">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {commodities.map((commodity) => (
-                        <tr key={commodity.id} className="border-t border-gray-800 hover:bg-gray-800/50">
-                          <td className="p-4">
-                            <div className="flex items-center gap-3">
-                              <span className="text-xl">{commodity.icon}</span>
-                              <span className="text-white font-medium">{commodity.name}</span>
-                            </div>
-                          </td>
-                          <td className="p-4 text-gray-400">{commodity.category}</td>
-                          <td className="p-4 text-gray-400">{commodity.unit}</td>
-                          <td className="p-4">
-                            <span className="px-2 py-1 bg-green-500/20 text-green-400 rounded-full text-xs">
-                              Active
-                            </span>
-                          </td>
+              <div className="space-y-4 md:space-y-6">
+                <h2 className="text-xl md:text-2xl font-bold text-white">Commodities</h2>
+
+                {/* Mobile Card View */}
+                <div className="md:hidden space-y-3">
+                  {commodities.map((commodity) => (
+                    <div key={commodity.id} className="bg-gray-900 rounded-xl p-4 border border-gray-800">
+                      <div className="flex items-center gap-3 mb-2">
+                        <span className="text-2xl">{commodity.icon}</span>
+                        <div className="flex-1">
+                          <p className="font-medium text-white">{commodity.name}</p>
+                          <p className="text-xs text-gray-400">{commodity.category}</p>
+                        </div>
+                        <span className="px-2 py-1 bg-green-500/20 text-green-400 rounded-full text-xs">
+                          Active
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-400">Unit: {commodity.unit}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Desktop Table View */}
+                <div className="hidden md:block bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-gray-800">
+                        <tr>
+                          <th className="text-left p-4 text-gray-400 font-medium">Commodity</th>
+                          <th className="text-left p-4 text-gray-400 font-medium">Category</th>
+                          <th className="text-left p-4 text-gray-400 font-medium">Unit</th>
+                          <th className="text-left p-4 text-gray-400 font-medium">Status</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {commodities.map((commodity) => (
+                          <tr key={commodity.id} className="border-t border-gray-800 hover:bg-gray-800/50">
+                            <td className="p-4">
+                              <div className="flex items-center gap-3">
+                                <span className="text-xl">{commodity.icon}</span>
+                                <span className="text-white font-medium">{commodity.name}</span>
+                              </div>
+                            </td>
+                            <td className="p-4 text-gray-400">{commodity.category}</td>
+                            <td className="p-4 text-gray-400">{commodity.unit}</td>
+                            <td className="p-4">
+                              <span className="px-2 py-1 bg-green-500/20 text-green-400 rounded-full text-xs">
+                                Active
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
             )}
@@ -659,14 +734,15 @@ export default function AdminDashboard() {
             {/* MARKETS TAB */}
             {/* ============================================ */}
             {activeTab === 'markets' && (
-              <div className="space-y-6">
-                <h2 className="text-2xl font-bold text-white">Markets</h2>
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="space-y-4 md:space-y-6">
+                <h2 className="text-xl md:text-2xl font-bold text-white">Markets</h2>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
                   {markets.map((market) => (
-                    <div key={market.id} className="bg-gray-900 rounded-xl p-6 border border-gray-800">
-                      <h3 className="text-lg font-bold text-white">{market.name}</h3>
-                      <p className="text-gray-400 mt-1">{market.city}, {market.state}</p>
-                      <p className="text-sm text-gray-500 mt-2">{market.description}</p>
+                    <div key={market.id} className="bg-gray-900 rounded-xl p-4 md:p-6 border border-gray-800">
+                      <h3 className="text-base md:text-lg font-bold text-white">{market.name}</h3>
+                      <p className="text-sm md:text-base text-gray-400 mt-1">{market.city}, {market.state}</p>
+                      <p className="text-xs md:text-sm text-gray-500 mt-2 line-clamp-2">{market.description}</p>
                       <div className="mt-4 pt-4 border-t border-gray-800">
                         <span className="text-xs text-gray-400">{market.region}</span>
                       </div>
@@ -680,12 +756,13 @@ export default function AdminDashboard() {
             {/* REPORTS TAB */}
             {/* ============================================ */}
             {activeTab === 'reports' && (
-              <div className="space-y-6">
-                <h2 className="text-2xl font-bold text-white">Reports</h2>
-                <div className="bg-gray-900 rounded-xl p-8 border border-gray-800 text-center">
+              <div className="space-y-4 md:space-y-6">
+                <h2 className="text-xl md:text-2xl font-bold text-white">Reports</h2>
+
+                <div className="bg-gray-900 rounded-xl p-6 md:p-8 border border-gray-800 text-center">
                   <BarChart3 size={48} className="mx-auto text-gray-600 mb-4" />
-                  <h3 className="text-xl font-semibold text-white mb-2">Reports Coming Soon</h3>
-                  <p className="text-gray-400">
+                  <h3 className="text-lg md:text-xl font-semibold text-white mb-2">Reports Coming Soon</h3>
+                  <p className="text-sm md:text-base text-gray-400">
                     Export functionality and detailed analytics will be available in the next update.
                   </p>
                 </div>
