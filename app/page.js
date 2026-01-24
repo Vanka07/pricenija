@@ -25,7 +25,44 @@ export default function PriceNija() {
   const [watchlist, setWatchlist] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTabState] = useState('dashboard');
+
+  // Helper function to change tab and update URL hash for browser history
+  const setActiveTab = useCallback((tab) => {
+    setActiveTabState(tab);
+    if (typeof window !== 'undefined') {
+      window.history.pushState({ tab }, '', `#${tab}`);
+    }
+  }, []);
+
+  // Read URL hash on initial load to restore tab state
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const hash = window.location.hash.replace('#', '');
+      const validTabs = ['dashboard', 'prices', 'markets', 'watchlist'];
+      if (hash && validTabs.includes(hash)) {
+        setActiveTabState(hash);
+      }
+    }
+  }, []);
+
+  // Listen for browser back/forward navigation
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handlePopState = (event) => {
+      const hash = window.location.hash.replace('#', '');
+      const validTabs = ['dashboard', 'prices', 'markets', 'watchlist'];
+      if (hash && validTabs.includes(hash)) {
+        setActiveTabState(hash);
+      } else {
+        setActiveTabState('dashboard');
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
   const [selectedCommodity, setSelectedCommodity] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
