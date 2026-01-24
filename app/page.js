@@ -518,7 +518,7 @@ export default function PriceNija() {
     );
   };
 
-/ Loading state
+// Loading state
 if (loading) return <PageLoadingSkeleton />;
 
   // Error state
