@@ -203,16 +203,21 @@ export default function PriceNija() {
     if (!prices.length || !commodities.length || !markets.length)
       return { commodityPrices: {}, marketPrices: {} };
 
-    const today = new Date().toISOString().split('T')[0];
-    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-    const latestPrices = {}, yesterdayPrices = {};
+    // Get unique dates from database and sort them (most recent first)
+    const sortedDates = [...new Set(prices.map(p => p.date))].sort().reverse();
+    const latestDate = sortedDates[0]; // Most recent date in database
+    const previousDate = sortedDates[1] || sortedDates[0]; // Second most recent (or same if only one date)
+
+    const latestPrices = {}, previousPrices = {};
 
     prices.forEach(p => {
       const key = `${p.commodity_id}-${p.market_id}`;
-      if (p.date === today || !latestPrices[key] || p.date > latestPrices[key].date) {
-        if (p.date <= today) latestPrices[key] = p;
+      if (p.date === latestDate) {
+        latestPrices[key] = p;
       }
-      if (p.date === yesterday) yesterdayPrices[key] = p;
+      if (p.date === previousDate) {
+        previousPrices[key] = p;
+      }
     });
 
     const commodityPrices = {};
