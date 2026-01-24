@@ -223,13 +223,13 @@ export default function PriceNija() {
     const commodityPrices = {};
     commodities.forEach(commodity => {
       const commodityLatest = Object.values(latestPrices).filter(p => p.commodity_id === commodity.id);
-      const commodityYesterday = Object.values(yesterdayPrices).filter(p => p.commodity_id === commodity.id);
+      const commodityPrevious = Object.values(previousPrices).filter(p => p.commodity_id === commodity.id);
       if (commodityLatest.length > 0) {
         const avgPrice = Math.round(commodityLatest.reduce((sum, p) => sum + p.price, 0) / commodityLatest.length);
-        const avgYesterday = commodityYesterday.length > 0
-          ? Math.round(commodityYesterday.reduce((sum, p) => sum + p.price, 0) / commodityYesterday.length)
-          : avgPrice;
-        const change = avgYesterday > 0 ? ((avgPrice - avgYesterday) / avgYesterday * 100) : 0;
+       const avgPrevious = commodityPrevious.length > 0
+  ? Math.round(commodityPrevious.reduce((sum, p) => sum + p.price, 0) / commodityPrevious.length)
+  : avgPrice;
+const change = avgPrevious > 0 ? ((avgPrice - avgPrevious) / avgPrevious * 100) : 0;
         const lowestPrice = Math.min(...commodityLatest.map(p => p.price));
         const highestPrice = Math.max(...commodityLatest.map(p => p.price));
         commodityPrices[commodity.id] = {
@@ -248,7 +248,7 @@ export default function PriceNija() {
       const marketLatest = Object.values(latestPrices).filter(p => p.market_id === market.id);
       if (marketLatest.length > 0) {
         const avgChange = marketLatest.reduce((sum, p) => {
-          const yPrice = yesterdayPrices[`${p.commodity_id}-${market.id}`]?.price || p.price;
+          const yPrice = previousPrices[`${p.commodity_id}-${market.id}`]?.price || p.price;
           return sum + ((p.price - yPrice) / yPrice * 100);
         }, 0) / marketLatest.length;
         marketPrices[market.id] = { market, avgChange: parseFloat(avgChange.toFixed(1)), priceCount: marketLatest.length };
