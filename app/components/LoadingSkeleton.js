@@ -158,3 +158,11 @@ export default function Loading() {
     </div>
   );
 }
+// Page Loading Skeleton - wraps DashboardSkeleton for full page loading state
+export function PageLoadingSkeleton() {
+  return (
+    <div className="min-h-screen bg-gray-950 p-4 md:p-6">
+      <DashboardSkeleton />
+    </div>
+  );
+}
