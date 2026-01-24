@@ -5,14 +5,15 @@ import {
   Search, TrendingUp, TrendingDown, MapPin, Bell,
   ChevronRight, ArrowUpRight, ArrowDownRight, Minus,
   RefreshCw, Menu, X, Star, StarOff, Home, BarChart3,
-  User, LogIn, LogOut, Loader2, AlertCircle, Eye, EyeOff
+  User, LogIn, LogOut, Loader2, AlertCircle, Eye, EyeOff,
+  Twitter, Facebook, Instagram, Mail, Shield, FileText
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
 import Link from 'next/link';
 import { supabase, onAuthStateChange } from '../lib/supabase';
-import { PageLoadingSkeleton } from './components/LoadingSkeleton';
+
 export default function PriceNija() {
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
@@ -226,10 +227,10 @@ export default function PriceNija() {
       const commodityPrevious = Object.values(previousPrices).filter(p => p.commodity_id === commodity.id);
       if (commodityLatest.length > 0) {
         const avgPrice = Math.round(commodityLatest.reduce((sum, p) => sum + p.price, 0) / commodityLatest.length);
-       const avgPrevious = commodityPrevious.length > 0
-  ? Math.round(commodityPrevious.reduce((sum, p) => sum + p.price, 0) / commodityPrevious.length)
-  : avgPrice;
-const change = avgPrevious > 0 ? ((avgPrice - avgPrevious) / avgPrevious * 100) : 0;
+        const avgPrevious = commodityPrevious.length > 0
+          ? Math.round(commodityPrevious.reduce((sum, p) => sum + p.price, 0) / commodityPrevious.length)
+          : avgPrice;
+        const change = avgPrevious > 0 ? ((avgPrice - avgPrevious) / avgPrevious * 100) : 0;
         const lowestPrice = Math.min(...commodityLatest.map(p => p.price));
         const highestPrice = Math.max(...commodityLatest.map(p => p.price));
         commodityPrices[commodity.id] = {
@@ -523,8 +524,19 @@ const change = avgPrevious > 0 ? ((avgPrice - avgPrevious) / avgPrevious * 100) 
     );
   };
 
-// Loading state
-if (loading) return <PageLoadingSkeleton />;
+  // Loading state
+  if (loading) return (
+    <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+      <div className="text-center">
+        <div className="inline-flex items-center justify-center mb-4">
+          <Logo size="lg" />
+        </div>
+        <div className="flex items-center gap-2 text-white">
+          <Loader2 className="animate-spin" /><span>Loading market data...</span>
+        </div>
+      </div>
+    </div>
+  );
 
   // Error state
   if (error && !prices.length) return (
@@ -665,8 +677,66 @@ if (loading) return <PageLoadingSkeleton />;
         {/* Dashboard Tab */}
         {activeTab === 'dashboard' && (
           <div className="space-y-4 sm:space-y-6">
+            {/* Hero Section for first-time visitors */}
+            {!user && (
+              <div className="bg-gradient-to-r from-green-900/50 to-blue-900/50 rounded-2xl p-6 sm:p-8 border border-green-800/50 mb-2">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="flex-1">
+                    <h1 className="text-2xl sm:text-3xl font-bold mb-2">
+                      Track Agricultural Prices <span className="text-green-400">Across Nigeria</span>
+                    </h1>
+                    <p className="text-gray-300 text-sm sm:text-base mb-4">
+                      Real-time commodity prices from 5+ major markets. Compare prices, track trends, and make smarter buying decisions.
+                    </p>
+                    <div className="flex flex-wrap gap-3">
+                      <button
+                        onClick={() => setShowAuthModal(true)}
+                        className="bg-green-500 hover:bg-green-600 text-white px-5 py-2.5 rounded-lg font-medium transition flex items-center gap-2"
+                      >
+                        <User size={18} /> Create Free Account
+                      </button>
+                      <button
+                        onClick={() => setActiveTab('prices')}
+                        className="bg-gray-800 hover:bg-gray-700 text-white px-5 py-2.5 rounded-lg font-medium transition"
+                      >
+                        Explore Prices →
+                      </button>
+                    </div>
+                  </div>
+                  {/* Quick Stats */}
+                  <div className="flex gap-6 md:gap-8">
+                    <div className="text-center">
+                      <p className="text-2xl sm:text-3xl font-bold text-green-400">{commodities.length}</p>
+                      <p className="text-gray-400 text-xs sm:text-sm">Commodities</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-2xl sm:text-3xl font-bold text-blue-400">{markets.length}</p>
+                      <p className="text-gray-400 text-xs sm:text-sm">Markets</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-2xl sm:text-3xl font-bold text-yellow-400">Live</p>
+                      <p className="text-gray-400 text-xs sm:text-sm">Updates</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Quick Search Bar */}
+            <div className="relative max-w-md">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+              <input
+                type="text"
+                placeholder="Quick search commodities..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onFocus={() => setActiveTab('prices')}
+                className="w-full bg-gray-900 border border-gray-700 rounded-xl pl-12 pr-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 text-sm sm:text-base transition"
+              />
+            </div>
+
             <div>
-              <h1 className="text-xl sm:text-2xl font-bold mb-1">Market Overview</h1>
+              <h2 className="text-xl sm:text-2xl font-bold mb-1">Market Overview</h2>
               <p className="text-gray-400 text-sm sm:text-base">Real-time prices across Nigeria&apos;s top markets</p>
             </div>
 
@@ -787,7 +857,13 @@ if (loading) return <PageLoadingSkeleton />;
                           </span>
                         </button>
                       )) : (
-                        <p className="text-gray-500 text-center py-4 text-sm">No increases today</p>
+                        <div className="text-center py-6">
+                          <div className="w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <Minus className="text-gray-500" size={24} />
+                          </div>
+                          <p className="text-gray-400 text-sm font-medium">Prices Stable</p>
+                          <p className="text-gray-500 text-xs mt-1">No price increases recorded today</p>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -850,13 +926,24 @@ if (loading) return <PageLoadingSkeleton />;
                         </button>
                       )) : (
                         <div className="text-center py-4">
-                          <p className="text-gray-500 mb-2 text-sm">
-                            {user ? 'No items in watchlist' : 'Sign in to track prices'}
+                          <div className="w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <Star className="text-gray-500" size={20} />
+                          </div>
+                          <p className="text-gray-400 text-sm font-medium mb-1">
+                            {user ? 'No items yet' : 'Track Your Favorites'}
                           </p>
-                          {!user && (
+                          <p className="text-gray-500 text-xs mb-3">
+                            {user ? 'Add commodities to your watchlist' : 'Get price alerts & updates'}
+                          </p>
+                          {!user ? (
                             <button onClick={() => setShowAuthModal(true)}
-                              className="text-green-400 hover:underline text-sm">
+                              className="bg-green-500 hover:bg-green-600 text-white text-xs px-4 py-2 rounded-lg font-medium transition">
                               Create free account
+                            </button>
+                          ) : (
+                            <button onClick={() => setActiveTab('prices')}
+                              className="text-green-400 hover:text-green-300 text-xs font-medium">
+                              Browse commodities →
                             </button>
                           )}
                         </div>
@@ -1200,23 +1287,83 @@ if (loading) return <PageLoadingSkeleton />;
 
       {/* Footer */}
       <footer className="bg-gray-900 border-t border-gray-800 mt-8 sm:mt-12">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-6 sm:py-8">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Logo size="sm" />
-              <span className="font-bold">PriceNija</span>
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-8 sm:py-12">
+          {/* Main Footer Content */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+            {/* Brand Column */}
+            <div className="md:col-span-1">
+              <div className="flex items-center gap-2 mb-4">
+                <Logo size="sm" />
+                <span className="font-bold text-lg">PriceNija</span>
+              </div>
+              <p className="text-gray-400 text-sm mb-4">
+                Nigeria&apos;s leading agricultural commodity price tracker. Real-time market intelligence for smarter decisions.
+              </p>
+              {/* Social Links */}
+              <div className="flex gap-3">
+                <a href="https://twitter.com/pricenija" target="_blank" rel="noopener noreferrer"
+                   className="w-9 h-9 bg-gray-800 rounded-lg flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700 transition">
+                  <Twitter size={18} />
+                </a>
+                <a href="https://facebook.com/pricenija" target="_blank" rel="noopener noreferrer"
+                   className="w-9 h-9 bg-gray-800 rounded-lg flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700 transition">
+                  <Facebook size={18} />
+                </a>
+                <a href="https://instagram.com/pricenija" target="_blank" rel="noopener noreferrer"
+                   className="w-9 h-9 bg-gray-800 rounded-lg flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700 transition">
+                  <Instagram size={18} />
+                </a>
+              </div>
             </div>
-            <p className="text-gray-400 text-xs sm:text-sm text-center max-w-xl">
-              Track real-time agricultural commodity prices across Nigerian markets.
-              Empowering farmers, traders, and consumers with accurate market data.
-            </p>
-            <div className="flex gap-4 text-xs sm:text-sm text-gray-400">
-              <button onClick={() => setActiveTab('dashboard')} className="hover:text-white transition">About</button>
-              <a href="mailto:support@pricenija.com" className="hover:text-white transition">Contact</a>
+
+            {/* Quick Links */}
+            <div>
+              <h4 className="font-semibold text-white mb-4">Quick Links</h4>
+              <ul className="space-y-2 text-sm">
+                <li><button onClick={() => setActiveTab('dashboard')} className="text-gray-400 hover:text-green-400 transition">Dashboard</button></li>
+                <li><button onClick={() => setActiveTab('prices')} className="text-gray-400 hover:text-green-400 transition">Prices</button></li>
+                <li><button onClick={() => setActiveTab('markets')} className="text-gray-400 hover:text-green-400 transition">Markets</button></li>
+                <li><button onClick={() => setActiveTab('watchlist')} className="text-gray-400 hover:text-green-400 transition">Watchlist</button></li>
+              </ul>
+            </div>
+
+            {/* Resources */}
+            <div>
+              <h4 className="font-semibold text-white mb-4">Resources</h4>
+              <ul className="space-y-2 text-sm">
+                <li><a href="#" className="text-gray-400 hover:text-green-400 transition">Market Reports</a></li>
+                <li><a href="#" className="text-gray-400 hover:text-green-400 transition">Price Alerts</a></li>
+                <li><a href="#" className="text-gray-400 hover:text-green-400 transition">API Access</a></li>
+                <li><a href="#" className="text-gray-400 hover:text-green-400 transition">Help Center</a></li>
+              </ul>
+            </div>
+
+            {/* Contact & Legal */}
+            <div>
+              <h4 className="font-semibold text-white mb-4">Contact</h4>
+              <ul className="space-y-2 text-sm">
+                <li>
+                  <a href="mailto:support@pricenija.com" className="text-gray-400 hover:text-green-400 transition flex items-center gap-2">
+                    <Mail size={14} /> support@pricenija.com
+                  </a>
+                </li>
+              </ul>
+              <h4 className="font-semibold text-white mb-3 mt-6">Legal</h4>
+              <ul className="space-y-2 text-sm">
+                <li><a href="#" className="text-gray-400 hover:text-green-400 transition flex items-center gap-2"><Shield size={14} /> Privacy Policy</a></li>
+                <li><a href="#" className="text-gray-400 hover:text-green-400 transition flex items-center gap-2"><FileText size={14} /> Terms of Service</a></li>
+              </ul>
             </div>
           </div>
-          <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-gray-800 text-center text-gray-500 text-xs sm:text-sm">
-            © {new Date().getFullYear()} PriceNija. All rights reserved.
+
+          {/* Bottom Bar */}
+          <div className="pt-6 border-t border-gray-800 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <p className="text-gray-500 text-xs sm:text-sm">
+              © {new Date().getFullYear()} PriceNija. All rights reserved.
+            </p>
+            <p className="text-gray-600 text-xs">
+              Made with 💚 for Nigerian farmers and traders
+            </p>
           </div>
         </div>
       </footer>
