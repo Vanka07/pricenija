@@ -431,12 +431,62 @@ export default function PriceNija() {
     );
   };
 
+  // Logo Component - Reusable across the app
+  const Logo = ({ size = 'md' }) => {
+    const sizes = {
+      sm: 'w-8 h-8',
+      md: 'w-10 h-10',
+      lg: 'w-16 h-16'
+    };
+    const svgSizes = {
+      sm: 'w-5 h-5',
+      md: 'w-7 h-7',
+      lg: 'w-10 h-10'
+    };
+    return (
+      <div className={`${sizes[size]} bg-gradient-to-br from-green-400 to-green-600 rounded-xl flex items-center justify-center shadow-lg`}>
+        <svg viewBox="0 0 40 40" className={svgSizes[size]}>
+          {/* Naira symbol - positioned higher */}
+          <text
+            x="20"
+            y="22"
+            textAnchor="middle"
+            fill="white"
+            fontSize="18"
+            fontWeight="bold"
+            fontFamily="system-ui"
+          >
+            ₦
+          </text>
+          {/* Trending line UNDER the Naira symbol */}
+          <path
+            d="M8 32 L16 28 L24 30 L32 24"
+            stroke="rgba(255,255,255,0.7)"
+            strokeWidth="2.5"
+            fill="none"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          {/* Small arrow at end of trend line */}
+          <path
+            d="M30 26 L32 24 L30 22"
+            stroke="rgba(255,255,255,0.7)"
+            strokeWidth="2"
+            fill="none"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </div>
+    );
+  };
+
   // Loading state
   if (loading) return (
     <div className="min-h-screen bg-gray-950 flex items-center justify-center">
       <div className="text-center">
-        <div className="inline-flex items-center justify-center w-16 h-16 bg-green-500 rounded-2xl mb-4">
-          <span className="text-2xl font-bold text-white">₦</span>
+        <div className="inline-flex items-center justify-center mb-4">
+          <Logo size="lg" />
         </div>
         <div className="flex items-center gap-2 text-white">
           <Loader2 className="animate-spin" /><span>Loading market data...</span>
@@ -472,9 +522,8 @@ export default function PriceNija() {
           <div className="flex items-center justify-between h-14 sm:h-16">
             {/* Logo */}
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-500 rounded-xl flex items-center justify-center">
-                <span className="text-sm sm:text-lg font-bold">₦</span>
-              </div>
+              <div className="hidden sm:block"><Logo size="md" /></div>
+              <div className="sm:hidden"><Logo size="sm" /></div>
               <div>
                 <span className="text-lg sm:text-xl font-bold">Price<span className="text-green-400">Nija</span></span>
                 <span className="hidden sm:inline text-xs text-gray-500 ml-2">MARKET INTELLIGENCE</span>
@@ -1123,9 +1172,7 @@ export default function PriceNija() {
         <div className="max-w-7xl mx-auto px-3 sm:px-4 py-6 sm:py-8">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
-                <span className="text-sm font-bold">₦</span>
-              </div>
+              <Logo size="sm" />
               <span className="font-bold">PriceNija</span>
             </div>
             <p className="text-gray-400 text-xs sm:text-sm text-center max-w-xl">
