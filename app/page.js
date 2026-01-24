@@ -518,19 +518,8 @@ export default function PriceNija() {
     );
   };
 
-  // Loading state
-if (loading) return (
-  <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-    <div className="text-center">
-      <div className="inline-flex items-center justify-center mb-4">
-        <Logo size="lg" />
-      </div>
-      <div className="flex items-center gap-2 text-white">
-        <Loader2 className="animate-spin" /><span>Loading market data...</span>
-      </div>
-    </div>
-  </div>
-);
+/ Loading state
+if (loading) return <PageLoadingSkeleton />;
 
   // Error state
   if (error && !prices.length) return (
