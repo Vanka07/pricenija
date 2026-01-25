@@ -553,7 +553,7 @@ export default function PriceNija() {
       <header className="sticky top-0 z-40 bg-gray-950/95 backdrop-blur border-b border-gray-800">
         <div className="max-w-7xl mx-auto px-3 sm:px-4">
           <div className="flex items-center justify-between h-14 sm:h-16">
-            {/* Logo */}
+           
             {/* Logo - Clickable to go home */}
             <button
               onClick={() => setActiveTab('dashboard')}
