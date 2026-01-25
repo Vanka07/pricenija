@@ -484,54 +484,50 @@ export default function PriceNija() {
   };
 
   // Logo Component - Reusable across the app
-  const Logo = ({ size = 'md' }) => {
-    const sizes = {
-      sm: 'w-8 h-8',
-      md: 'w-10 h-10',
-      lg: 'w-16 h-16'
-    };
-    const svgSizes = {
-      sm: 'w-5 h-5',
-      md: 'w-7 h-7',
-      lg: 'w-10 h-10'
-    };
-    return (
-      <div className={`${sizes[size]} bg-gradient-to-br from-green-400 to-green-600 rounded-xl flex items-center justify-center shadow-lg`}>
-        <svg viewBox="0 0 40 40" className={svgSizes[size]}>
-          {/* Naira symbol - positioned higher */}
-          <text
-            x="20"
-            y="22"
-            textAnchor="middle"
-            fill="white"
-            fontSize="18"
-            fontWeight="bold"
-            fontFamily="system-ui"
-          >
-            ₦
-          </text>
-          {/* Trending line UNDER the Naira symbol */}
-          <path
-            d="M8 32 L16 28 L24 30 L32 24"
-            stroke="rgba(255,255,255,0.7)"
-            strokeWidth="2.5"
-            fill="none"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          {/* Small arrow at end of trend line */}
-          <path
-            d="M30 26 L32 24 L30 22"
-            stroke="rgba(255,255,255,0.7)"
-            strokeWidth="2"
-            fill="none"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      </div>
-    );
+const Logo = ({ size = 'md' }) => {
+  const sizes = {
+    sm: 'w-10 h-10',
+    md: 'w-12 h-12',
+    lg: 'w-16 h-16'
   };
+  const svgSizes = {
+    sm: 'w-6 h-6',
+    md: 'w-8 h-8',
+    lg: 'w-10 h-10'
+  };
+  return (
+    <div className={`${sizes[size]} bg-gradient-to-br from-green-400 to-green-600 rounded-xl flex items-center justify-center shadow-lg`}>
+      <svg viewBox="0 0 40 40" className={svgSizes[size]}>
+        {/* Naira symbol - positioned higher */}
+        <text
+          x="20"
+          y="21"
+          textAnchor="middle"
+          fill="white"
+          fontSize="17"
+          fontWeight="bold"
+          fontFamily="system-ui"
+        >
+          ₦
+        </text>
+        {/* Trending line UNDER the Naira symbol - YELLOW/GOLD color */}
+        <path
+          d="M8 32 L16 28 L24 30 L32 24"
+          stroke="#FBBF24"
+          strokeWidth="2.5"
+          fill="none"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        {/* Small arrow at end of trend line - YELLOW/GOLD color */}
+        <path
+          d="M30 26 L32 24 L30 22"
+          stroke="#FBBF24"
+          strokeWidth="2"
+          fill="none"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
 
   // Loading state
   if (loading) return <PageLoadingSkeleton />;
