@@ -675,7 +675,7 @@ export default function PriceNija() {
       {showNotifications && <div className="fixed inset-0 z-30" onClick={() => setShowNotifications(false)} />}
 
       {/* Status Bar */}
-      <div className="bg-gray-900 border-b border-gray-800 py-2 px-3 sm:px-4">
+      <div className="bg-gray-900 border-b border-gray-800 py-2 px-4 sm:px-6 lg:px-8">
        <div className="max-w-7xl mx-auto flex items-center justify-between text-xs sm:text-sm">
           <div className="flex items-center gap-2">
             <span className="flex items-center gap-1">
