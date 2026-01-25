@@ -18,10 +18,10 @@ export const metadata = {
       },
 
       // Favicon & Icons
-      icons: {
-              icon: '/favicon.ico',
-              apple: '/apple-touch-icon.png',
-      },
+  icons: {
+        icon: '/favicon.svg',
+        apple: '/favicon.svg',
+  },
 
       // Open Graph (Facebook, WhatsApp, LinkedIn)
       openGraph: {
