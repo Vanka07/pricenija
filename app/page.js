@@ -1306,6 +1306,7 @@ export default function PriceNija() {
                   <Instagram size={18} />
                 </div>
               </div>
+            </div>
 
             {/* Quick Links */}
             <div>
