@@ -271,20 +271,28 @@ export default function PriceNija() {
       .sort((a, b) => Math.abs(b.change) - Math.abs(a.change))[0] || null;
   }, [getPriceData.commodityPrices]);
 
-  const toggleWatchlist = async (commodityId) => {
-    if (!user) { setShowAuthModal(true); return; }
-    try {
-      if (watchlist.includes(commodityId)) {
-        await supabase.from('watchlist').delete().eq('user_id', user.id).eq('commodity_id', commodityId);
-        setWatchlist(prev => prev.filter(id => id !== commodityId));
-      } else {
-        await supabase.from('watchlist').insert({ user_id: user.id, commodity_id: commodityId });
-        setWatchlist(prev => [...prev, commodityId]);
+ const toggleWatchlist = async (commodityId) => {
+  if (!user) { setShowAuthModal(true); return; }
+  try {
+    if (watchlist.includes(commodityId)) {
+      const { error } = await supabase.from('watchlist').delete().eq('user_id', user.id).eq('commodity_id', commodityId);
+      if (error) {
+        console.error('Error removing from watchlist:', error);
+        return;
       }
-    } catch (err) {
-      console.error('Error updating watchlist:', err);
+      setWatchlist(prev => prev.filter(id => id !== commodityId));
+    } else {
+      const { error } = await supabase.from('watchlist').insert({ user_id: user.id, commodity_id: commodityId });
+      if (error) {
+        console.error('Error adding to watchlist:', error);
+        return;
+      }
+      setWatchlist(prev => [...prev, commodityId]);
     }
-  };
+  } catch (err) {
+    console.error('Error updating watchlist:', err);
+  }
+};
 
   const isInWatchlist = (commodityId) => watchlist.includes(commodityId);
 
