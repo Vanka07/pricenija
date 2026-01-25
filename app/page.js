@@ -554,14 +554,18 @@ export default function PriceNija() {
         <div className="max-w-7xl mx-auto px-3 sm:px-4">
           <div className="flex items-center justify-between h-14 sm:h-16">
             {/* Logo */}
-            <div className="flex items-center gap-2">
+            {/* Logo - Clickable to go home */}
+            <button
+              onClick={() => setActiveTab('dashboard')}
+              className="flex items-center gap-2 hover:opacity-80 transition"
+            >
               <div className="hidden sm:block"><Logo size="md" /></div>
               <div className="sm:hidden"><Logo size="sm" /></div>
               <div>
                 <span className="text-lg sm:text-xl font-bold">Price<span className="text-green-400">Nija</span></span>
                 <span className="hidden sm:inline text-xs text-gray-500 ml-2">MARKET INTELLIGENCE</span>
               </div>
-            </div>
+            </button>
 
             {/* Desktop Navigation */}
             <nav className="hidden md:flex items-center gap-1">
@@ -1289,22 +1293,19 @@ export default function PriceNija() {
               <p className="text-gray-400 text-sm mb-4">
                 Nigeria&apos;s leading agricultural commodity price tracker. Real-time market intelligence for smarter decisions.
               </p>
-              {/* Social Links */}
+            
+              {/* Social Links - Static for now */}
               <div className="flex gap-3">
-                <a href="https://twitter.com/pricenija" target="_blank" rel="noopener noreferrer"
-                   className="w-9 h-9 bg-gray-800 rounded-lg flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700 transition">
+                <div className="w-9 h-9 bg-gray-800 rounded-lg flex items-center justify-center text-gray-400">
                   <Twitter size={18} />
-                </a>
-                <a href="https://facebook.com/pricenija" target="_blank" rel="noopener noreferrer"
-                   className="w-9 h-9 bg-gray-800 rounded-lg flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700 transition">
+                </div>
+                <div className="w-9 h-9 bg-gray-800 rounded-lg flex items-center justify-center text-gray-400">
                   <Facebook size={18} />
-                </a>
-                <a href="https://instagram.com/pricenija" target="_blank" rel="noopener noreferrer"
-                   className="w-9 h-9 bg-gray-800 rounded-lg flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700 transition">
+                </div>
+                <div className="w-9 h-9 bg-gray-800 rounded-lg flex items-center justify-center text-gray-400">
                   <Instagram size={18} />
-                </a>
+                </div>
               </div>
-            </div>
 
             {/* Quick Links */}
             <div>
