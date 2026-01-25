@@ -1323,6 +1323,7 @@ export default function PriceNija() {
             <div>
               <h4 className="font-semibold text-white mb-4">Resources</h4>
               <ul className="space-y-2 text-sm">
+                <li><Link href="/about" className="text-gray-400 hover:text-green-400 transition">About Us</Link></li>
                 <li><a href="#" className="text-gray-400 hover:text-green-400 transition">Market Reports</a></li>
                 <li><a href="#" className="text-gray-400 hover:text-green-400 transition">Price Alerts</a></li>
                 <li><a href="#" className="text-gray-400 hover:text-green-400 transition">API Access</a></li>
