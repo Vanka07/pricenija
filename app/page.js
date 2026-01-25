@@ -271,28 +271,28 @@ export default function PriceNija() {
       .sort((a, b) => Math.abs(b.change) - Math.abs(a.change))[0] || null;
   }, [getPriceData.commodityPrices]);
 
- const toggleWatchlist = async (commodityId) => {
-  if (!user) { setShowAuthModal(true); return; }
-  try {
-    if (watchlist.includes(commodityId)) {
-      const { error } = await supabase.from('watchlist').delete().eq('user_id', user.id).eq('commodity_id', commodityId);
-      if (error) {
-        console.error('Error removing from watchlist:', error);
-        return;
+  const toggleWatchlist = async (commodityId) => {
+    if (!user) { setShowAuthModal(true); return; }
+    try {
+      if (watchlist.includes(commodityId)) {
+        const { error } = await supabase.from('watchlist').delete().eq('user_id', user.id).eq('commodity_id', commodityId);
+        if (error) {
+          console.error('Error removing from watchlist:', error);
+          return;
+        }
+        setWatchlist(prev => prev.filter(id => id !== commodityId));
+      } else {
+        const { error } = await supabase.from('watchlist').insert({ user_id: user.id, commodity_id: commodityId });
+        if (error) {
+          console.error('Error adding to watchlist:', error);
+          return;
+        }
+        setWatchlist(prev => [...prev, commodityId]);
       }
-      setWatchlist(prev => prev.filter(id => id !== commodityId));
-    } else {
-      const { error } = await supabase.from('watchlist').insert({ user_id: user.id, commodity_id: commodityId });
-      if (error) {
-        console.error('Error adding to watchlist:', error);
-        return;
-      }
-      setWatchlist(prev => [...prev, commodityId]);
+    } catch (err) {
+      console.error('Error updating watchlist:', err);
     }
-  } catch (err) {
-    console.error('Error updating watchlist:', err);
-  }
-};
+  };
 
   const isInWatchlist = (commodityId) => watchlist.includes(commodityId);
 
@@ -483,55 +483,55 @@ export default function PriceNija() {
     );
   };
 
- // Logo Component - Reusable across the app
-const Logo = ({ size = 'md' }) => {
-  const sizes = {
-    sm: 'w-10 h-10',
-    md: 'w-12 h-12',
-    lg: 'w-16 h-16'
-  };
-  const svgSizes = {
-    sm: 'w-6 h-6',
-    md: 'w-8 h-8',
-    lg: 'w-10 h-10'
-  };
-  return (
-    <div className={`${sizes[size]} bg-gradient-to-br from-green-400 to-green-600 rounded-xl flex items-center justify-center shadow-lg`}>
-      <svg viewBox="0 0 40 40" className={svgSizes[size]}>
-        {/* Naira symbol - positioned higher */}
-        <text
-          x="20"
-          y="21"
-          textAnchor="middle"
-          fill="white"
-          fontSize="17"
-          fontWeight="bold"
-          fontFamily="system-ui"
-        >
-          ₦
-        </text>
-        {/* Trending line UNDER the Naira symbol - YELLOW/GOLD color */}
-        <path
-          d="M8 32 L16 28 L24 30 L32 24"
-          stroke="#FBBF24"
-          strokeWidth="2.5"
-          fill="none"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        {/* Small arrow at end of trend line - YELLOW/GOLD color */}
-        <path
-          d="M30 26 L32 24 L30 22"
-          stroke="#FBBF24"
-          strokeWidth="2"
-          fill="none"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-       </svg>
+  // Logo Component - Reusable across the app
+  const Logo = ({ size = 'md' }) => {
+    const sizes = {
+      sm: 'w-10 h-10',
+      md: 'w-12 h-12',
+      lg: 'w-16 h-16'
+    };
+    const svgSizes = {
+      sm: 'w-6 h-6',
+      md: 'w-8 h-8',
+      lg: 'w-10 h-10'
+    };
+    return (
+      <div className={`${sizes[size]} bg-gradient-to-br from-green-400 to-green-600 rounded-xl flex items-center justify-center shadow-lg`}>
+        <svg viewBox="0 0 40 40" className={svgSizes[size]}>
+          {/* Naira symbol - positioned higher */}
+          <text
+            x="20"
+            y="21"
+            textAnchor="middle"
+            fill="white"
+            fontSize="17"
+            fontWeight="bold"
+            fontFamily="system-ui"
+          >
+            ₦
+          </text>
+          {/* Trending line UNDER the Naira symbol - YELLOW/GOLD color */}
+          <path
+            d="M8 32 L16 28 L24 30 L32 24"
+            stroke="#FBBF24"
+            strokeWidth="2.5"
+            fill="none"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          {/* Small arrow at end of trend line - YELLOW/GOLD color */}
+          <path
+            d="M30 26 L32 24 L30 22"
+            stroke="#FBBF24"
+            strokeWidth="2"
+            fill="none"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
       </div>
     );
-  };     
+  };
 
   // Loading state
   if (loading) return <PageLoadingSkeleton />;
@@ -555,13 +555,39 @@ const Logo = ({ size = 'md' }) => {
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
+      {/* Custom animation styles */}
+      <style jsx global>{`
+        @keyframes fade-in-up {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        @keyframes pulse-subtle {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.8; }
+        }
+        .animate-fade-in-up {
+          animation: fade-in-up 0.5s ease-out forwards;
+          opacity: 0;
+        }
+        .animate-pulse-subtle {
+          animation: pulse-subtle 2s ease-in-out infinite;
+        }
+        .hover\\:bg-gray-750:hover {
+          background-color: rgb(38, 42, 51);
+        }
+      `}</style>
       <AuthModal />
 
       {/* Header */}
       <header className="sticky top-0 z-40 bg-gray-950/95 backdrop-blur border-b border-gray-800">
         <div className="max-w-7xl mx-auto px-3 sm:px-4">
           <div className="flex items-center justify-between h-14 sm:h-16">
-           
             {/* Logo - Clickable to go home */}
             <button
               onClick={() => setActiveTab('dashboard')}
@@ -705,18 +731,21 @@ const Logo = ({ size = 'md' }) => {
                       </button>
                     </div>
                   </div>
-                  {/* Quick Stats */}
+                  {/* Quick Stats - with animations */}
                   <div className="flex gap-6 md:gap-8">
-                    <div className="text-center">
-                      <p className="text-2xl sm:text-3xl font-bold text-green-400">{commodities.length}</p>
+                    <div className="text-center animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+                      <p className="text-2xl sm:text-3xl font-bold text-green-400 animate-pulse-subtle">{commodities.length}</p>
                       <p className="text-gray-400 text-xs sm:text-sm">Commodities</p>
                     </div>
-                    <div className="text-center">
-                      <p className="text-2xl sm:text-3xl font-bold text-blue-400">{markets.length}</p>
+                    <div className="text-center animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+                      <p className="text-2xl sm:text-3xl font-bold text-blue-400 animate-pulse-subtle">{markets.length}</p>
                       <p className="text-gray-400 text-xs sm:text-sm">Markets</p>
                     </div>
-                    <div className="text-center">
-                      <p className="text-2xl sm:text-3xl font-bold text-yellow-400">Live</p>
+                    <div className="text-center animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
+                      <p className="text-2xl sm:text-3xl font-bold text-yellow-400 flex items-center justify-center gap-1">
+                        <span className="w-2 h-2 bg-yellow-400 rounded-full animate-ping"></span>
+                        Live
+                      </p>
                       <p className="text-gray-400 text-xs sm:text-sm">Updates</p>
                     </div>
                   </div>
@@ -841,20 +870,21 @@ const Logo = ({ size = 'md' }) => {
                       <TrendingUp className="text-green-400" size={20} />Price Increases
                     </h3>
                     <div className="space-y-2 sm:space-y-3">
-                      {topGainers.length > 0 ? topGainers.map((item) => (
+                      {topGainers.length > 0 ? topGainers.map((item, index) => (
                         <button
                           key={item.commodity.id}
                           onClick={() => { setSelectedCommodity(item.commodity); setActiveTab('prices'); }}
-                          className="w-full flex items-center justify-between p-2 sm:p-3 bg-gray-800 rounded-xl hover:bg-gray-700 transition text-left"
+                          className="w-full flex items-center justify-between p-2 sm:p-3 bg-gray-800 rounded-xl hover:bg-gray-750 hover:shadow-lg hover:shadow-green-500/10 hover:border-green-500/30 border border-transparent transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] text-left group"
+                          style={{ animationDelay: `${index * 0.05}s` }}
                         >
                           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                            <span className="text-xl sm:text-2xl">{getCommodityIcon(item.commodity)}</span>
+                            <span className="text-xl sm:text-2xl group-hover:scale-110 transition-transform duration-200">{getCommodityIcon(item.commodity)}</span>
                             <div className="min-w-0">
-                              <p className="font-medium text-sm sm:text-base truncate">{item.commodity.name}</p>
+                              <p className="font-medium text-sm sm:text-base truncate group-hover:text-green-300 transition-colors">{item.commodity.name}</p>
                               <p className="text-xs text-gray-400 truncate">{item.lowestMarket?.name || 'N/A'}</p>
                             </div>
                           </div>
-                          <span className="text-green-400 font-semibold text-sm sm:text-base flex-shrink-0 ml-2">
+                          <span className="text-green-400 font-semibold text-sm sm:text-base flex-shrink-0 ml-2 group-hover:text-green-300 transition-colors">
                             +{item.change.toFixed(1)}%
                           </span>
                         </button>
@@ -876,25 +906,32 @@ const Logo = ({ size = 'md' }) => {
                       <TrendingDown className="text-red-400" size={20} />Price Drops
                     </h3>
                     <div className="space-y-2 sm:space-y-3">
-                      {topLosers.length > 0 ? topLosers.map((item) => (
+                      {topLosers.length > 0 ? topLosers.map((item, index) => (
                         <button
                           key={item.commodity.id}
                           onClick={() => { setSelectedCommodity(item.commodity); setActiveTab('prices'); }}
-                          className="w-full flex items-center justify-between p-2 sm:p-3 bg-gray-800 rounded-xl hover:bg-gray-700 transition text-left"
+                          className="w-full flex items-center justify-between p-2 sm:p-3 bg-gray-800 rounded-xl hover:bg-gray-750 hover:shadow-lg hover:shadow-red-500/10 hover:border-red-500/30 border border-transparent transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] text-left group"
+                          style={{ animationDelay: `${index * 0.05}s` }}
                         >
                           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                            <span className="text-xl sm:text-2xl">{getCommodityIcon(item.commodity)}</span>
+                            <span className="text-xl sm:text-2xl group-hover:scale-110 transition-transform duration-200">{getCommodityIcon(item.commodity)}</span>
                             <div className="min-w-0">
-                              <p className="font-medium text-sm sm:text-base truncate">{item.commodity.name}</p>
+                              <p className="font-medium text-sm sm:text-base truncate group-hover:text-red-300 transition-colors">{item.commodity.name}</p>
                               <p className="text-xs text-gray-400 truncate">{item.lowestMarket?.name || 'N/A'}</p>
                             </div>
                           </div>
-                          <span className="text-red-400 font-semibold text-sm sm:text-base flex-shrink-0 ml-2">
+                          <span className="text-red-400 font-semibold text-sm sm:text-base flex-shrink-0 ml-2 group-hover:text-red-300 transition-colors">
                             {item.change.toFixed(1)}%
                           </span>
                         </button>
                       )) : (
-                        <p className="text-gray-500 text-center py-4 text-sm">No drops today</p>
+                        <div className="text-center py-6">
+                          <div className="w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <TrendingDown className="text-gray-500" size={24} />
+                          </div>
+                          <p className="text-gray-400 text-sm font-medium">Prices Holding</p>
+                          <p className="text-gray-500 text-xs mt-1">No significant price drops</p>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -906,8 +943,8 @@ const Logo = ({ size = 'md' }) => {
                         <Star className="text-yellow-400" size={20} />Your Watchlist
                       </h3>
                       <button onClick={() => setActiveTab('watchlist')}
-                        className="text-green-400 text-xs sm:text-sm hover:underline flex items-center gap-1">
-                        View All <ChevronRight size={14} />
+                        className="text-green-400 text-xs sm:text-sm hover:text-green-300 flex items-center gap-1 group transition-colors">
+                        View All <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform duration-200" />
                       </button>
                     </div>
                     <div className="space-y-2 sm:space-y-3">
@@ -927,25 +964,32 @@ const Logo = ({ size = 'md' }) => {
                           <div className="flex-shrink-0 ml-2">{renderChangeIndicator(item.change)}</div>
                         </button>
                       )) : (
-                        <div className="text-center py-4">
-                          <div className="w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-3">
-                            <Star className="text-gray-500" size={20} />
+                        <div className="text-center py-6">
+                          {/* Animated star illustration */}
+                          <div className="relative w-16 h-16 mx-auto mb-4">
+                            <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/20 to-orange-500/20 rounded-full animate-pulse"></div>
+                            <div className="absolute inset-2 bg-gray-800 rounded-full flex items-center justify-center">
+                              <Star className="text-yellow-500/70" size={24} />
+                            </div>
+                            {/* Floating mini stars */}
+                            <div className="absolute -top-1 -right-1 w-3 h-3 text-yellow-400 animate-bounce" style={{ animationDelay: '0.1s' }}>✦</div>
+                            <div className="absolute -bottom-1 -left-1 w-2 h-2 text-yellow-500 animate-bounce" style={{ animationDelay: '0.3s' }}>✦</div>
                           </div>
-                          <p className="text-gray-400 text-sm font-medium mb-1">
-                            {user ? 'No items yet' : 'Track Your Favorites'}
+                          <p className="text-gray-300 text-sm font-medium mb-1">
+                            {user ? 'Your watchlist is empty' : 'Track Your Favorites'}
                           </p>
-                          <p className="text-gray-500 text-xs mb-3">
-                            {user ? 'Add commodities to your watchlist' : 'Get price alerts & updates'}
+                          <p className="text-gray-500 text-xs mb-4 max-w-[180px] mx-auto">
+                            {user ? 'Click the star icon on any commodity to add it here' : 'Get price alerts & updates'}
                           </p>
                           {!user ? (
                             <button onClick={() => setShowAuthModal(true)}
-                              className="bg-green-500 hover:bg-green-600 text-white text-xs px-4 py-2 rounded-lg font-medium transition">
+                              className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-400 hover:to-green-500 text-white text-xs px-5 py-2.5 rounded-lg font-medium transition-all duration-200 shadow-lg shadow-green-500/25 hover:shadow-green-500/40 hover:scale-105 active:scale-95">
                               Create free account
                             </button>
                           ) : (
                             <button onClick={() => setActiveTab('prices')}
-                              className="text-green-400 hover:text-green-300 text-xs font-medium">
-                              Browse commodities →
+                              className="text-green-400 hover:text-green-300 text-xs font-medium flex items-center gap-1 mx-auto group">
+                              Browse commodities <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
                             </button>
                           )}
                         </div>
@@ -1301,7 +1345,6 @@ const Logo = ({ size = 'md' }) => {
               <p className="text-gray-400 text-sm mb-4">
                 Nigeria&apos;s leading agricultural commodity price tracker. Real-time market intelligence for smarter decisions.
               </p>
-            
               {/* Social Links - Static for now */}
               <div className="flex gap-3">
                 <div className="w-9 h-9 bg-gray-800 rounded-lg flex items-center justify-center text-gray-400">
