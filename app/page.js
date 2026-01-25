@@ -528,6 +528,10 @@ const Logo = ({ size = 'md' }) => {
           strokeLinecap="round"
           strokeLinejoin="round"
         />
+       </svg>
+      </div>
+    );
+  };     
 
   // Loading state
   if (loading) return <PageLoadingSkeleton />;
