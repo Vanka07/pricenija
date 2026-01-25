@@ -81,6 +81,11 @@ export default function AdminDashboard() {
   // Dashboard charts data
   const [chartData, setChartData] = useState({ weeklyEntries: [], topCommodities: [] });
 
+  // Market Commodities state
+  const [marketCommodities, setMarketCommodities] = useState({});
+  const [selectedMarketForCommodities, setSelectedMarketForCommodities] = useState('');
+  const [loadingMarketCommodities, setLoadingMarketCommodities] = useState(false);
+
   // Check authentication on mount
   useEffect(() => {
     const checkAuth = async () => {
@@ -139,6 +144,7 @@ export default function AdminDashboard() {
     if (user && isAdmin) {
       fetchData();
       fetchChartData();
+      fetchAllMarketCommodities();
     }
   }, [user, isAdmin]);
 
@@ -829,6 +835,146 @@ export default function AdminDashboard() {
     }
   };
 
+  // ============================================
+  // MARKET COMMODITIES FUNCTIONS
+  // ============================================
+  const fetchAllMarketCommodities = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('market_commodities')
+        .select('market_id, commodity_id');
+
+      if (error) throw error;
+
+      // Group by market
+      const grouped = {};
+      (data || []).forEach(item => {
+        if (!grouped[item.market_id]) grouped[item.market_id] = [];
+        grouped[item.market_id].push(item.commodity_id);
+      });
+      setMarketCommodities(grouped);
+    } catch (err) {
+      console.error('Error fetching market commodities:', err);
+      // Table might not exist yet
+      setMarketCommodities({});
+    }
+  };
+
+  const toggleMarketCommodity = async (marketId, commodityId) => {
+    const currentCommodities = marketCommodities[marketId] || [];
+    const isAssigned = currentCommodities.includes(commodityId);
+
+    try {
+      if (isAssigned) {
+        // Remove
+        const { error } = await supabase
+          .from('market_commodities')
+          .delete()
+          .eq('market_id', marketId)
+          .eq('commodity_id', commodityId);
+
+        if (error) throw error;
+
+        setMarketCommodities(prev => ({
+          ...prev,
+          [marketId]: prev[marketId].filter(id => id !== commodityId)
+        }));
+
+        const commodity = commodities.find(c => c.id === commodityId);
+        const market = markets.find(m => m.id === marketId);
+        await logActivity('market_commodity_remove', `Removed ${commodity?.name} from ${market?.name}`);
+      } else {
+        // Add
+        const { error } = await supabase
+          .from('market_commodities')
+          .insert({ market_id: marketId, commodity_id: commodityId });
+
+        if (error) throw error;
+
+        setMarketCommodities(prev => ({
+          ...prev,
+          [marketId]: [...(prev[marketId] || []), commodityId]
+        }));
+
+        const commodity = commodities.find(c => c.id === commodityId);
+        const market = markets.find(m => m.id === marketId);
+        await logActivity('market_commodity_add', `Added ${commodity?.name} to ${market?.name}`);
+      }
+    } catch (err) {
+      console.error('Error toggling market commodity:', err);
+      showToast('Error updating market commodity: ' + err.message, 'error');
+    }
+  };
+
+  const assignAllCommoditiesToMarket = async (marketId) => {
+    try {
+      const commodityIds = commodities.filter(c => c.is_active).map(c => c.id);
+      const existingIds = marketCommodities[marketId] || [];
+      const newIds = commodityIds.filter(id => !existingIds.includes(id));
+
+      if (newIds.length === 0) {
+        showToast('All commodities already assigned', 'info');
+        return;
+      }
+
+      const inserts = newIds.map(commodity_id => ({
+        market_id: marketId,
+        commodity_id
+      }));
+
+      const { error } = await supabase
+        .from('market_commodities')
+        .insert(inserts);
+
+      if (error) throw error;
+
+      setMarketCommodities(prev => ({
+        ...prev,
+        [marketId]: [...(prev[marketId] || []), ...newIds]
+      }));
+
+      const market = markets.find(m => m.id === marketId);
+      await logActivity('market_commodity_assign_all', `Assigned all commodities to ${market?.name}`);
+      showToast(`${newIds.length} commodities assigned successfully!`, 'success');
+    } catch (err) {
+      console.error('Error assigning all commodities:', err);
+      showToast('Error assigning commodities: ' + err.message, 'error');
+    }
+  };
+
+  const removeAllCommoditiesFromMarket = async (marketId) => {
+    if (!confirm('Are you sure you want to remove all commodities from this market?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('market_commodities')
+        .delete()
+        .eq('market_id', marketId);
+
+      if (error) throw error;
+
+      setMarketCommodities(prev => ({
+        ...prev,
+        [marketId]: []
+      }));
+
+      const market = markets.find(m => m.id === marketId);
+      await logActivity('market_commodity_remove_all', `Removed all commodities from ${market?.name}`);
+      showToast('All commodities removed from market', 'success');
+    } catch (err) {
+      console.error('Error removing all commodities:', err);
+      showToast('Error removing commodities: ' + err.message, 'error');
+    }
+  };
+
+  // Get commodities available for a specific market (for price entry)
+  const getMarketAvailableCommodities = (marketId) => {
+    const assignedIds = marketCommodities[marketId] || [];
+    // If no commodities assigned, show all (backwards compatibility)
+    if (assignedIds.length === 0) return commodities.filter(c => c.is_active);
+    return commodities.filter(c => c.is_active && assignedIds.includes(c.id));
+  };
+
   // Group commodities by category
   const groupedCommodities = commodities.reduce((acc, commodity) => {
     if (!acc[commodity.category]) acc[commodity.category] = [];
@@ -836,12 +982,23 @@ export default function AdminDashboard() {
     return acc;
   }, {});
 
+  // Group commodities by category for selected market (price entry)
+  const getGroupedMarketCommodities = (marketId) => {
+    const available = getMarketAvailableCommodities(marketId);
+    return available.reduce((acc, commodity) => {
+      if (!acc[commodity.category]) acc[commodity.category] = [];
+      acc[commodity.category].push(commodity);
+      return acc;
+    }, {});
+  };
+
   // Navigation items
   const navItems = [
     { id: 'dashboard', icon: Home, label: 'Dashboard' },
     { id: 'prices', icon: DollarSign, label: 'Price Entry' },
     { id: 'commodities', icon: Package, label: 'Commodities' },
     { id: 'markets', icon: MapPin, label: 'Markets' },
+    { id: 'market-commodities', icon: Settings, label: 'Market Setup' },
     { id: 'history', icon: History, label: 'Price History' },
     { id: 'reports', icon: BarChart3, label: 'Reports' },
     { id: 'activity', icon: Activity, label: 'Activity Log' },
@@ -1524,17 +1681,29 @@ export default function AdminDashboard() {
 
                 {/* Price Entry Form */}
                 <div className="bg-gray-900 rounded-xl p-4 md:p-6 border border-gray-800">
-                  <h3 className="font-semibold text-white mb-4 text-sm md:text-base">
-                    Enter Prices - {getMarketName(selectedMarket)}
-                  </h3>
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 gap-2">
+                    <h3 className="font-semibold text-white text-sm md:text-base">
+                      Enter Prices - {getMarketName(selectedMarket)}
+                    </h3>
+                    <span className="text-xs text-gray-400">
+                      {getMarketAvailableCommodities(selectedMarket).length} commodities available
+                    </span>
+                  </div>
 
-                  {Object.entries(groupedCommodities).map(([category, items]) => (
+                  {Object.entries(getGroupedMarketCommodities(selectedMarket)).length === 0 ? (
+                    <div className="text-center py-8">
+                      <Package size={40} className="mx-auto text-gray-600 mb-3" />
+                      <p className="text-gray-400">No commodities assigned to this market.</p>
+                      <p className="text-sm text-gray-500 mt-1">Go to "Market Setup" to assign commodities.</p>
+                    </div>
+                  ) : (
+                    Object.entries(getGroupedMarketCommodities(selectedMarket)).map(([category, items]) => (
                     <div key={category} className="mb-6">
                       <h4 className="text-xs md:text-sm font-medium text-gray-400 uppercase tracking-wider mb-3">
                         {category}
                       </h4>
                       <div className="space-y-2">
-                        {items.filter(c => c.is_active).map((commodity) => (
+                        {items.map((commodity) => (
                           <div
                             key={commodity.id}
                             className="flex flex-col sm:flex-row sm:items-center justify-between p-3 md:p-4 bg-gray-800 rounded-xl gap-3"
@@ -1560,7 +1729,153 @@ export default function AdminDashboard() {
                         ))}
                       </div>
                     </div>
-                  ))}
+                  ))
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* ============================================ */}
+            {/* MARKET COMMODITIES SETUP TAB */}
+            {/* ============================================ */}
+            {activeTab === 'market-commodities' && (
+              <div className="space-y-4 md:space-y-6">
+                <div>
+                  <h2 className="text-xl md:text-2xl font-bold text-white">Market Commodity Setup</h2>
+                  <p className="text-sm text-gray-400 mt-1">Configure which commodities are available in each market</p>
+                </div>
+
+                {/* Market Selection */}
+                <div className="bg-gray-900 rounded-xl p-4 md:p-6 border border-gray-800">
+                  <label className="block text-sm text-gray-400 mb-2">Select Market</label>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <select
+                      value={selectedMarketForCommodities}
+                      onChange={(e) => setSelectedMarketForCommodities(e.target.value)}
+                      className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-green-500"
+                    >
+                      <option value="">Select a market...</option>
+                      {markets.filter(m => m.is_active).map((market) => (
+                        <option key={market.id} value={market.id}>
+                          {market.name} - {market.state}
+                        </option>
+                      ))}
+                    </select>
+                    {selectedMarketForCommodities && (
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => assignAllCommoditiesToMarket(selectedMarketForCommodities)}
+                          className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm whitespace-nowrap"
+                        >
+                          Assign All
+                        </button>
+                        <button
+                          onClick={() => removeAllCommoditiesFromMarket(selectedMarketForCommodities)}
+                          className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm whitespace-nowrap"
+                        >
+                          Remove All
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {selectedMarketForCommodities ? (
+                  <div className="bg-gray-900 rounded-xl p-4 md:p-6 border border-gray-800">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="font-semibold text-white">
+                        Commodities for {markets.find(m => m.id === selectedMarketForCommodities)?.name}
+                      </h3>
+                      <span className="text-sm text-gray-400">
+                        {(marketCommodities[selectedMarketForCommodities] || []).length} of {commodities.filter(c => c.is_active).length} assigned
+                      </span>
+                    </div>
+
+                    {Object.entries(groupedCommodities).map(([category, items]) => (
+                      <div key={category} className="mb-6">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="text-xs md:text-sm font-medium text-gray-400 uppercase tracking-wider">
+                            {category}
+                          </h4>
+                          <span className="text-xs text-gray-500">
+                            {items.filter(c => c.is_active && (marketCommodities[selectedMarketForCommodities] || []).includes(c.id)).length}/{items.filter(c => c.is_active).length}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                          {items.filter(c => c.is_active).map((commodity) => {
+                            const isAssigned = (marketCommodities[selectedMarketForCommodities] || []).includes(commodity.id);
+                            return (
+                              <button
+                                key={commodity.id}
+                                onClick={() => toggleMarketCommodity(selectedMarketForCommodities, commodity.id)}
+                                className={`flex items-center gap-3 p-3 rounded-lg border transition-all ${
+                                  isAssigned
+                                    ? 'bg-green-500/20 border-green-500 text-white'
+                                    : 'bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-600'
+                                }`}
+                              >
+                                <span className="text-lg">{commodity.icon}</span>
+                                <span className="text-sm font-medium flex-1 text-left">{commodity.name}</span>
+                                {isAssigned ? (
+                                  <Check size={16} className="text-green-400" />
+                                ) : (
+                                  <Plus size={16} className="text-gray-500" />
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="bg-gray-900 rounded-xl p-8 border border-gray-800 text-center">
+                    <MapPin size={40} className="mx-auto text-gray-600 mb-3" />
+                    <p className="text-gray-400">Select a market above to configure its commodities</p>
+                    <p className="text-sm text-gray-500 mt-1">You can assign specific commodities to each market</p>
+                  </div>
+                )}
+
+                {/* Quick Overview */}
+                <div className="bg-gray-900 rounded-xl p-4 md:p-6 border border-gray-800">
+                  <h3 className="font-semibold text-white mb-4">Market Overview</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {markets.filter(m => m.is_active).map((market) => {
+                      const assignedCount = (marketCommodities[market.id] || []).length;
+                      const totalActive = commodities.filter(c => c.is_active).length;
+                      return (
+                        <div
+                          key={market.id}
+                          onClick={() => setSelectedMarketForCommodities(market.id)}
+                          className={`p-4 rounded-lg border cursor-pointer transition-all ${
+                            selectedMarketForCommodities === market.id
+                              ? 'border-green-500 bg-green-500/10'
+                              : 'border-gray-700 bg-gray-800 hover:border-gray-600'
+                          }`}
+                        >
+                          <div className="flex justify-between items-start mb-2">
+                            <h4 className="font-medium text-white text-sm">{market.name}</h4>
+                            <span className={`text-xs px-2 py-0.5 rounded-full ${
+                              assignedCount === 0
+                                ? 'bg-red-500/20 text-red-400'
+                                : assignedCount === totalActive
+                                ? 'bg-green-500/20 text-green-400'
+                                : 'bg-yellow-500/20 text-yellow-400'
+                            }`}>
+                              {assignedCount}/{totalActive}
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-400">{market.state}</p>
+                          <div className="mt-2 h-1 bg-gray-700 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-green-500 transition-all"
+                              style={{ width: `${totalActive > 0 ? (assignedCount / totalActive) * 100 : 0}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             )}
