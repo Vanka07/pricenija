@@ -483,7 +483,7 @@ export default function PriceNija() {
     );
   };
 
-  // Logo Component - Reusable across the app
+ // Logo Component - Reusable across the app
 const Logo = ({ size = 'md' }) => {
   const sizes = {
     sm: 'w-10 h-10',
