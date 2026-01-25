@@ -434,11 +434,19 @@ export default function AdminDashboard() {
         await logActivity('commodity_update', `Updated commodity: ${commodityForm.name}`);
         showToast('Commodity updated successfully!', 'success');
       } else {
-        // Create new
+        // Create new - generate slug from name
+        const slug = commodityForm.name
+          .toLowerCase()
+          .trim()
+          .replace(/[^a-z0-9\s-]/g, '')
+          .replace(/\s+/g, '-')
+          .replace(/-+/g, '-');
+
         const { error } = await supabase
           .from('commodities')
           .insert({
             name: commodityForm.name,
+            slug: slug,
             category: commodityForm.category,
             unit: commodityForm.unit,
             icon: commodityForm.icon,
