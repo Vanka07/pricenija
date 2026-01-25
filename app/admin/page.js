@@ -4,7 +4,9 @@ import React, { useState, useEffect } from 'react';
 import {
   BarChart3, Home, Package, MapPin, DollarSign, Settings,
   Save, Check, X, TrendingUp, Calendar, Clock, RefreshCw, Menu,
-  LogOut, Download, ChevronLeft, User, Eye, EyeOff, Loader2, Lock
+  LogOut, Download, ChevronLeft, User, Eye, EyeOff, Loader2, Lock,
+  Plus, Edit2, Trash2, Upload, History, Activity, Users, AlertTriangle,
+  FileText, Filter, Search, ChevronDown, ChevronUp
 } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '../../lib/supabase';
@@ -34,6 +36,50 @@ export default function AdminDashboard() {
 
   // Mobile menu state
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Modal states
+  const [showCommodityModal, setShowCommodityModal] = useState(false);
+  const [showMarketModal, setShowMarketModal] = useState(false);
+  const [editingCommodity, setEditingCommodity] = useState(null);
+  const [editingMarket, setEditingMarket] = useState(null);
+
+  // Form states for modals
+  const [commodityForm, setCommodityForm] = useState({
+    name: '', category: 'Grains', unit: 'per 100kg bag', icon: '🌾', is_active: true
+  });
+  const [marketForm, setMarketForm] = useState({
+    name: '', city: '', state: '', region: 'South-West', description: '', is_active: true
+  });
+
+  // Reports state
+  const [reportType, setReportType] = useState('price-trends');
+  const [reportDateRange, setReportDateRange] = useState({ start: '', end: '' });
+  const [reportMarket, setReportMarket] = useState('all');
+  const [reportData, setReportData] = useState(null);
+  const [loadingReport, setLoadingReport] = useState(false);
+
+  // Price History state
+  const [priceHistory, setPriceHistory] = useState([]);
+  const [historyFilters, setHistoryFilters] = useState({
+    market: 'all', commodity: 'all', startDate: '', endDate: ''
+  });
+  const [loadingHistory, setLoadingHistory] = useState(false);
+
+  // Activity Log state
+  const [activityLog, setActivityLog] = useState([]);
+  const [loadingActivity, setLoadingActivity] = useState(false);
+
+  // Bulk Import state
+  const [showBulkImport, setShowBulkImport] = useState(false);
+  const [bulkImportData, setBulkImportData] = useState('');
+  const [bulkImportPreview, setBulkImportPreview] = useState([]);
+
+  // User Management state
+  const [users, setUsers] = useState([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+
+  // Dashboard charts data
+  const [chartData, setChartData] = useState({ weeklyEntries: [], topCommodities: [] });
 
   // Check authentication on mount
   useEffect(() => {
@@ -92,6 +138,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (user && isAdmin) {
       fetchData();
+      fetchChartData();
     }
   }, [user, isAdmin]);
 
@@ -110,7 +157,6 @@ export default function AdminDashboard() {
       const { data: marketsData, error: marketsError } = await supabase
         .from('markets')
         .select('*')
-        .eq('is_active', true)
         .order('name');
 
       if (marketsError) throw marketsError;
@@ -124,7 +170,6 @@ export default function AdminDashboard() {
       const { data: commoditiesData, error: commoditiesError } = await supabase
         .from('commodities')
         .select('*')
-        .eq('is_active', true)
         .order('category')
         .order('name');
 
@@ -152,6 +197,35 @@ export default function AdminDashboard() {
       showToast('Error loading data', 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchChartData = async () => {
+    try {
+      // Fetch weekly entries for chart
+      const weekAgo = new Date();
+      weekAgo.setDate(weekAgo.getDate() - 7);
+
+      const { data: weeklyData } = await supabase
+        .from('prices')
+        .select('date')
+        .gte('date', weekAgo.toISOString().split('T')[0])
+        .order('date');
+
+      // Group by date
+      const entriesByDate = {};
+      (weeklyData || []).forEach(entry => {
+        entriesByDate[entry.date] = (entriesByDate[entry.date] || 0) + 1;
+      });
+
+      const weeklyEntries = Object.entries(entriesByDate).map(([date, count]) => ({
+        date: new Date(date).toLocaleDateString('en-NG', { weekday: 'short', day: 'numeric' }),
+        count
+      }));
+
+      setChartData(prev => ({ ...prev, weeklyEntries }));
+    } catch (err) {
+      console.error('Error fetching chart data:', err);
     }
   };
 
@@ -268,6 +342,9 @@ export default function AdminDashboard() {
 
       if (error) throw error;
 
+      // Log activity
+      await logActivity('price_entry', `Added ${pricesToSave.length} prices for ${getMarketName(selectedMarket)} on ${selectedDate}`);
+
       showToast(`${pricesToSave.length} prices saved successfully!`, 'success');
       fetchData(); // Refresh stats
     } catch (err) {
@@ -288,6 +365,470 @@ export default function AdminDashboard() {
     return market ? `${market.name} - ${market.state}` : '';
   };
 
+  // Activity logging
+  const logActivity = async (action, details) => {
+    try {
+      await supabase.from('activity_log').insert({
+        user_id: user.id,
+        user_email: user.email,
+        action,
+        details,
+        created_at: new Date().toISOString()
+      });
+    } catch (err) {
+      console.error('Error logging activity:', err);
+    }
+  };
+
+  // ============================================
+  // COMMODITY CRUD OPERATIONS
+  // ============================================
+  const openCommodityModal = (commodity = null) => {
+    if (commodity) {
+      setEditingCommodity(commodity);
+      setCommodityForm({
+        name: commodity.name,
+        category: commodity.category,
+        unit: commodity.unit,
+        icon: commodity.icon,
+        is_active: commodity.is_active
+      });
+    } else {
+      setEditingCommodity(null);
+      setCommodityForm({
+        name: '', category: 'Grains', unit: 'per 100kg bag', icon: '🌾', is_active: true
+      });
+    }
+    setShowCommodityModal(true);
+  };
+
+  const saveCommodity = async () => {
+    if (!commodityForm.name.trim()) {
+      showToast('Please enter a commodity name', 'error');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      if (editingCommodity) {
+        // Update existing
+        const { error } = await supabase
+          .from('commodities')
+          .update({
+            name: commodityForm.name,
+            category: commodityForm.category,
+            unit: commodityForm.unit,
+            icon: commodityForm.icon,
+            is_active: commodityForm.is_active,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', editingCommodity.id);
+
+        if (error) throw error;
+        await logActivity('commodity_update', `Updated commodity: ${commodityForm.name}`);
+        showToast('Commodity updated successfully!', 'success');
+      } else {
+        // Create new
+        const { error } = await supabase
+          .from('commodities')
+          .insert({
+            name: commodityForm.name,
+            category: commodityForm.category,
+            unit: commodityForm.unit,
+            icon: commodityForm.icon,
+            is_active: commodityForm.is_active
+          });
+
+        if (error) throw error;
+        await logActivity('commodity_create', `Created commodity: ${commodityForm.name}`);
+        showToast('Commodity created successfully!', 'success');
+      }
+
+      setShowCommodityModal(false);
+      fetchData();
+    } catch (err) {
+      console.error('Error saving commodity:', err);
+      showToast('Error saving commodity: ' + err.message, 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteCommodity = async (commodity) => {
+    if (!confirm(`Are you sure you want to delete "${commodity.name}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('commodities')
+        .delete()
+        .eq('id', commodity.id);
+
+      if (error) throw error;
+      await logActivity('commodity_delete', `Deleted commodity: ${commodity.name}`);
+      showToast('Commodity deleted successfully!', 'success');
+      fetchData();
+    } catch (err) {
+      console.error('Error deleting commodity:', err);
+      showToast('Error deleting commodity: ' + err.message, 'error');
+    }
+  };
+
+  // ============================================
+  // MARKET CRUD OPERATIONS
+  // ============================================
+  const openMarketModal = (market = null) => {
+    if (market) {
+      setEditingMarket(market);
+      setMarketForm({
+        name: market.name,
+        city: market.city,
+        state: market.state,
+        region: market.region,
+        description: market.description || '',
+        is_active: market.is_active
+      });
+    } else {
+      setEditingMarket(null);
+      setMarketForm({
+        name: '', city: '', state: '', region: 'South-West', description: '', is_active: true
+      });
+    }
+    setShowMarketModal(true);
+  };
+
+  const saveMarket = async () => {
+    if (!marketForm.name.trim() || !marketForm.city.trim() || !marketForm.state.trim()) {
+      showToast('Please fill in all required fields', 'error');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      if (editingMarket) {
+        // Update existing
+        const { error } = await supabase
+          .from('markets')
+          .update({
+            name: marketForm.name,
+            city: marketForm.city,
+            state: marketForm.state,
+            region: marketForm.region,
+            description: marketForm.description,
+            is_active: marketForm.is_active,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', editingMarket.id);
+
+        if (error) throw error;
+        await logActivity('market_update', `Updated market: ${marketForm.name}`);
+        showToast('Market updated successfully!', 'success');
+      } else {
+        // Create new
+        const { error } = await supabase
+          .from('markets')
+          .insert({
+            name: marketForm.name,
+            city: marketForm.city,
+            state: marketForm.state,
+            region: marketForm.region,
+            description: marketForm.description,
+            is_active: marketForm.is_active
+          });
+
+        if (error) throw error;
+        await logActivity('market_create', `Created market: ${marketForm.name}`);
+        showToast('Market created successfully!', 'success');
+      }
+
+      setShowMarketModal(false);
+      fetchData();
+    } catch (err) {
+      console.error('Error saving market:', err);
+      showToast('Error saving market: ' + err.message, 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteMarket = async (market) => {
+    if (!confirm(`Are you sure you want to delete "${market.name}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('markets')
+        .delete()
+        .eq('id', market.id);
+
+      if (error) throw error;
+      await logActivity('market_delete', `Deleted market: ${market.name}`);
+      showToast('Market deleted successfully!', 'success');
+      fetchData();
+    } catch (err) {
+      console.error('Error deleting market:', err);
+      showToast('Error deleting market: ' + err.message, 'error');
+    }
+  };
+
+  // ============================================
+  // REPORTS FUNCTIONS
+  // ============================================
+  const generateReport = async () => {
+    setLoadingReport(true);
+    try {
+      let query = supabase.from('prices').select(`
+        *,
+        commodity:commodities(name, icon, category),
+        market:markets(name, state)
+      `);
+
+      if (reportDateRange.start) {
+        query = query.gte('date', reportDateRange.start);
+      }
+      if (reportDateRange.end) {
+        query = query.lte('date', reportDateRange.end);
+      }
+      if (reportMarket !== 'all') {
+        query = query.eq('market_id', reportMarket);
+      }
+
+      const { data, error } = await query.order('date', { ascending: false });
+      if (error) throw error;
+
+      setReportData(data);
+    } catch (err) {
+      console.error('Error generating report:', err);
+      showToast('Error generating report', 'error');
+    } finally {
+      setLoadingReport(false);
+    }
+  };
+
+  const exportToCSV = () => {
+    if (!reportData || reportData.length === 0) {
+      showToast('No data to export', 'error');
+      return;
+    }
+
+    const headers = ['Date', 'Market', 'Commodity', 'Category', 'Price (₦)', 'Unit'];
+    const rows = reportData.map(item => [
+      item.date,
+      item.market?.name || 'N/A',
+      item.commodity?.name || 'N/A',
+      item.commodity?.category || 'N/A',
+      item.price,
+      item.commodity?.unit || 'N/A'
+    ]);
+
+    const csvContent = [headers, ...rows]
+      .map(row => row.map(cell => `"${cell}"`).join(','))
+      .join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `pricenija-report-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+
+    showToast('Report exported successfully!', 'success');
+  };
+
+  // ============================================
+  // PRICE HISTORY FUNCTIONS
+  // ============================================
+  const fetchPriceHistory = async () => {
+    setLoadingHistory(true);
+    try {
+      let query = supabase.from('prices').select(`
+        *,
+        commodity:commodities(name, icon),
+        market:markets(name, state)
+      `);
+
+      if (historyFilters.market !== 'all') {
+        query = query.eq('market_id', historyFilters.market);
+      }
+      if (historyFilters.commodity !== 'all') {
+        query = query.eq('commodity_id', historyFilters.commodity);
+      }
+      if (historyFilters.startDate) {
+        query = query.gte('date', historyFilters.startDate);
+      }
+      if (historyFilters.endDate) {
+        query = query.lte('date', historyFilters.endDate);
+      }
+
+      const { data, error } = await query.order('date', { ascending: false }).limit(100);
+      if (error) throw error;
+
+      setPriceHistory(data || []);
+    } catch (err) {
+      console.error('Error fetching price history:', err);
+      showToast('Error fetching price history', 'error');
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  const deletePriceEntry = async (priceId) => {
+    if (!confirm('Are you sure you want to delete this price entry?')) return;
+
+    try {
+      const { error } = await supabase.from('prices').delete().eq('id', priceId);
+      if (error) throw error;
+
+      await logActivity('price_delete', `Deleted price entry ID: ${priceId}`);
+      showToast('Price entry deleted', 'success');
+      fetchPriceHistory();
+      fetchData();
+    } catch (err) {
+      console.error('Error deleting price:', err);
+      showToast('Error deleting price', 'error');
+    }
+  };
+
+  // ============================================
+  // ACTIVITY LOG FUNCTIONS
+  // ============================================
+  const fetchActivityLog = async () => {
+    setLoadingActivity(true);
+    try {
+      const { data, error } = await supabase
+        .from('activity_log')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+      if (error) throw error;
+      setActivityLog(data || []);
+    } catch (err) {
+      console.error('Error fetching activity log:', err);
+      // Activity log table might not exist yet
+      setActivityLog([]);
+    } finally {
+      setLoadingActivity(false);
+    }
+  };
+
+  // ============================================
+  // BULK IMPORT FUNCTIONS
+  // ============================================
+  const parseBulkImport = () => {
+    try {
+      const lines = bulkImportData.trim().split('\n');
+      const preview = [];
+
+      for (const line of lines) {
+        const parts = line.split(',').map(p => p.trim());
+        if (parts.length >= 3) {
+          const [commodityName, marketName, price] = parts;
+          const commodity = commodities.find(c =>
+            c.name.toLowerCase() === commodityName.toLowerCase()
+          );
+          const market = markets.find(m =>
+            m.name.toLowerCase() === marketName.toLowerCase()
+          );
+
+          preview.push({
+            commodityName,
+            marketName,
+            price: parseFloat(price) || 0,
+            commodity,
+            market,
+            valid: !!(commodity && market && parseFloat(price) > 0)
+          });
+        }
+      }
+
+      setBulkImportPreview(preview);
+    } catch (err) {
+      showToast('Error parsing import data', 'error');
+    }
+  };
+
+  const executeBulkImport = async () => {
+    const validEntries = bulkImportPreview.filter(e => e.valid);
+    if (validEntries.length === 0) {
+      showToast('No valid entries to import', 'error');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const pricesToSave = validEntries.map(entry => ({
+        market_id: entry.market.id,
+        commodity_id: entry.commodity.id,
+        date: selectedDate,
+        price: entry.price,
+        price_type: 'wholesale',
+        created_by: user.id,
+      }));
+
+      const { error } = await supabase
+        .from('prices')
+        .upsert(pricesToSave, {
+          onConflict: 'market_id,commodity_id,date',
+        });
+
+      if (error) throw error;
+
+      await logActivity('bulk_import', `Imported ${validEntries.length} prices`);
+      showToast(`${validEntries.length} prices imported successfully!`, 'success');
+      setShowBulkImport(false);
+      setBulkImportData('');
+      setBulkImportPreview([]);
+      fetchData();
+    } catch (err) {
+      console.error('Error importing prices:', err);
+      showToast('Error importing prices: ' + err.message, 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // ============================================
+  // USER MANAGEMENT FUNCTIONS
+  // ============================================
+  const fetchUsers = async () => {
+    setLoadingUsers(true);
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setUsers(data || []);
+    } catch (err) {
+      console.error('Error fetching users:', err);
+      setUsers([]);
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
+  const updateUserRole = async (userId, newRole) => {
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update({ role: newRole, updated_at: new Date().toISOString() })
+        .eq('id', userId);
+
+      if (error) throw error;
+      await logActivity('user_role_update', `Updated user role to ${newRole}`);
+      showToast('User role updated', 'success');
+      fetchUsers();
+    } catch (err) {
+      console.error('Error updating user role:', err);
+      showToast('Error updating user role', 'error');
+    }
+  };
+
   // Group commodities by category
   const groupedCommodities = commodities.reduce((acc, commodity) => {
     if (!acc[commodity.category]) acc[commodity.category] = [];
@@ -301,8 +842,16 @@ export default function AdminDashboard() {
     { id: 'prices', icon: DollarSign, label: 'Price Entry' },
     { id: 'commodities', icon: Package, label: 'Commodities' },
     { id: 'markets', icon: MapPin, label: 'Markets' },
+    { id: 'history', icon: History, label: 'Price History' },
     { id: 'reports', icon: BarChart3, label: 'Reports' },
+    { id: 'activity', icon: Activity, label: 'Activity Log' },
+    { id: 'users', icon: Users, label: 'Users' },
   ];
+
+  // Category options
+  const categoryOptions = ['Grains', 'Legumes', 'Tubers', 'Vegetables', 'Fruits', 'Oils', 'Livestock', 'Other'];
+  const regionOptions = ['South-West', 'South-East', 'South-South', 'North-West', 'North-East', 'North-Central'];
+  const iconOptions = ['🌾', '🌽', '🍚', '🫘', '🥔', '🍠', '🥬', '🍅', '🥜', '🫒', '🐄', '🐔', '🐟', '🥚'];
 
   // ============================================
   // LOADING STATE
@@ -419,6 +968,286 @@ export default function AdminDashboard() {
         </div>
       )}
 
+      {/* Commodity Modal */}
+      {showCommodityModal && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+          <div className="bg-gray-900 rounded-2xl p-6 w-full max-w-md border border-gray-800">
+            <h3 className="text-xl font-bold text-white mb-4">
+              {editingCommodity ? 'Edit Commodity' : 'Add New Commodity'}
+            </h3>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Name *</label>
+                <input
+                  type="text"
+                  value={commodityForm.name}
+                  onChange={(e) => setCommodityForm({...commodityForm, name: e.target.value})}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-green-500"
+                  placeholder="e.g., Maize (White)"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Category</label>
+                <select
+                  value={commodityForm.category}
+                  onChange={(e) => setCommodityForm({...commodityForm, category: e.target.value})}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-green-500"
+                >
+                  {categoryOptions.map(cat => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Unit</label>
+                <input
+                  type="text"
+                  value={commodityForm.unit}
+                  onChange={(e) => setCommodityForm({...commodityForm, unit: e.target.value})}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-green-500"
+                  placeholder="e.g., per 100kg bag"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Icon</label>
+                <div className="flex flex-wrap gap-2">
+                  {iconOptions.map(icon => (
+                    <button
+                      key={icon}
+                      type="button"
+                      onClick={() => setCommodityForm({...commodityForm, icon})}
+                      className={`w-10 h-10 text-xl rounded-lg ${
+                        commodityForm.icon === icon
+                          ? 'bg-green-500/30 border-2 border-green-500'
+                          : 'bg-gray-800 border border-gray-700'
+                      }`}
+                    >
+                      {icon}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="commodity-active"
+                  checked={commodityForm.is_active}
+                  onChange={(e) => setCommodityForm({...commodityForm, is_active: e.target.checked})}
+                  className="w-4 h-4 rounded border-gray-600 text-green-500 focus:ring-green-500"
+                />
+                <label htmlFor="commodity-active" className="text-gray-400 text-sm">Active</label>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowCommodityModal(false)}
+                className="flex-1 px-4 py-2 border border-gray-700 text-gray-400 rounded-lg hover:bg-gray-800"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveCommodity}
+                disabled={saving}
+                className="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {saving && <Loader2 size={16} className="animate-spin" />}
+                {editingCommodity ? 'Update' : 'Create'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Market Modal */}
+      {showMarketModal && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+          <div className="bg-gray-900 rounded-2xl p-6 w-full max-w-md border border-gray-800 max-h-[90vh] overflow-y-auto">
+            <h3 className="text-xl font-bold text-white mb-4">
+              {editingMarket ? 'Edit Market' : 'Add New Market'}
+            </h3>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Market Name *</label>
+                <input
+                  type="text"
+                  value={marketForm.name}
+                  onChange={(e) => setMarketForm({...marketForm, name: e.target.value})}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-green-500"
+                  placeholder="e.g., Bodija"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">City *</label>
+                <input
+                  type="text"
+                  value={marketForm.city}
+                  onChange={(e) => setMarketForm({...marketForm, city: e.target.value})}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-green-500"
+                  placeholder="e.g., Ibadan"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">State *</label>
+                <input
+                  type="text"
+                  value={marketForm.state}
+                  onChange={(e) => setMarketForm({...marketForm, state: e.target.value})}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-green-500"
+                  placeholder="e.g., Oyo"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Region</label>
+                <select
+                  value={marketForm.region}
+                  onChange={(e) => setMarketForm({...marketForm, region: e.target.value})}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-green-500"
+                >
+                  {regionOptions.map(region => (
+                    <option key={region} value={region}>{region}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Description</label>
+                <textarea
+                  value={marketForm.description}
+                  onChange={(e) => setMarketForm({...marketForm, description: e.target.value})}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-green-500"
+                  placeholder="Brief description of the market..."
+                  rows={3}
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="market-active"
+                  checked={marketForm.is_active}
+                  onChange={(e) => setMarketForm({...marketForm, is_active: e.target.checked})}
+                  className="w-4 h-4 rounded border-gray-600 text-green-500 focus:ring-green-500"
+                />
+                <label htmlFor="market-active" className="text-gray-400 text-sm">Active</label>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowMarketModal(false)}
+                className="flex-1 px-4 py-2 border border-gray-700 text-gray-400 rounded-lg hover:bg-gray-800"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveMarket}
+                disabled={saving}
+                className="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {saving && <Loader2 size={16} className="animate-spin" />}
+                {editingMarket ? 'Update' : 'Create'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Import Modal */}
+      {showBulkImport && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+          <div className="bg-gray-900 rounded-2xl p-6 w-full max-w-2xl border border-gray-800 max-h-[90vh] overflow-y-auto">
+            <h3 className="text-xl font-bold text-white mb-4">Bulk Import Prices</h3>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">
+                  Paste CSV data (Commodity, Market, Price)
+                </label>
+                <textarea
+                  value={bulkImportData}
+                  onChange={(e) => setBulkImportData(e.target.value)}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-green-500 font-mono text-sm"
+                  placeholder="Maize (White), Bodija, 85000&#10;Rice (Local), Mile 12, 92000&#10;Beans (Brown), Dawanau, 145000"
+                  rows={6}
+                />
+              </div>
+
+              <button
+                onClick={parseBulkImport}
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+              >
+                Preview Import
+              </button>
+
+              {bulkImportPreview.length > 0 && (
+                <div className="mt-4">
+                  <h4 className="text-white font-medium mb-2">Preview ({bulkImportPreview.filter(e => e.valid).length} valid entries)</h4>
+                  <div className="bg-gray-800 rounded-lg overflow-hidden">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-700">
+                        <tr>
+                          <th className="text-left p-2 text-gray-400">Commodity</th>
+                          <th className="text-left p-2 text-gray-400">Market</th>
+                          <th className="text-right p-2 text-gray-400">Price</th>
+                          <th className="text-center p-2 text-gray-400">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {bulkImportPreview.map((entry, idx) => (
+                          <tr key={idx} className={`border-t border-gray-700 ${!entry.valid ? 'opacity-50' : ''}`}>
+                            <td className="p-2 text-white">{entry.commodityName}</td>
+                            <td className="p-2 text-white">{entry.marketName}</td>
+                            <td className="p-2 text-white text-right">₦{entry.price.toLocaleString()}</td>
+                            <td className="p-2 text-center">
+                              {entry.valid ? (
+                                <Check size={16} className="text-green-500 inline" />
+                              ) : (
+                                <X size={16} className="text-red-500 inline" />
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => {
+                  setShowBulkImport(false);
+                  setBulkImportData('');
+                  setBulkImportPreview([]);
+                }}
+                className="flex-1 px-4 py-2 border border-gray-700 text-gray-400 rounded-lg hover:bg-gray-800"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={executeBulkImport}
+                disabled={saving || bulkImportPreview.filter(e => e.valid).length === 0}
+                className="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {saving && <Loader2 size={16} className="animate-spin" />}
+                Import {bulkImportPreview.filter(e => e.valid).length} Prices
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Mobile Header */}
       <div className="md:hidden bg-gray-900 border-b border-gray-800 p-4 flex items-center justify-between sticky top-0 z-40">
         <div className="flex items-center gap-3">
@@ -481,6 +1310,10 @@ export default function AdminDashboard() {
               onClick={() => {
                 setActiveTab(item.id);
                 setMobileMenuOpen(false);
+                // Fetch data for specific tabs
+                if (item.id === 'history') fetchPriceHistory();
+                if (item.id === 'activity') fetchActivityLog();
+                if (item.id === 'users') fetchUsers();
               }}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition ${
                 activeTab === item.id
@@ -549,10 +1382,10 @@ export default function AdminDashboard() {
                   </div>
                   <div className="bg-blue-600 rounded-xl p-3 md:p-4">
                     <p className="text-blue-200 text-xs md:text-sm">Active Markets</p>
-                    <p className="text-2xl md:text-3xl font-bold text-white mt-1">{markets.length}</p>
+                    <p className="text-2xl md:text-3xl font-bold text-white mt-1">{markets.filter(m => m.is_active).length}</p>
                   </div>
                   <div className="bg-orange-600 rounded-xl p-3 md:p-4">
-                    <p className="text-orange-200 text-xs md:text-sm">Today's Entries</p>
+                    <p className="text-orange-200 text-xs md:text-sm">Today&apos;s Entries</p>
                     <p className="text-2xl md:text-3xl font-bold text-white mt-1">{stats.todayEntries}</p>
                   </div>
                   <div className="bg-purple-600 rounded-xl p-3 md:p-4">
@@ -561,9 +1394,65 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
+                {/* Weekly Activity Chart */}
+                {chartData.weeklyEntries.length > 0 && (
+                  <div className="bg-gray-900 rounded-xl p-4 md:p-6 border border-gray-800">
+                    <h3 className="font-semibold text-white mb-4">📊 Weekly Price Entries</h3>
+                    <div className="flex items-end justify-between h-32 gap-2">
+                      {chartData.weeklyEntries.map((day, idx) => (
+                        <div key={idx} className="flex-1 flex flex-col items-center">
+                          <div
+                            className="w-full bg-green-500 rounded-t"
+                            style={{
+                              height: `${Math.max(10, (day.count / Math.max(...chartData.weeklyEntries.map(d => d.count))) * 100)}%`
+                            }}
+                          />
+                          <span className="text-xs text-gray-400 mt-2">{day.date}</span>
+                          <span className="text-xs text-white">{day.count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Quick Actions */}
                 <div className="bg-gray-900 rounded-xl p-4 md:p-6 border border-gray-800">
-                  <h3 className="font-semibold text-white mb-4">🚀 Getting Started</h3>
+                  <h3 className="font-semibold text-white mb-4">🚀 Quick Actions</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <button
+                      onClick={() => setActiveTab('prices')}
+                      className="p-4 bg-gray-800 rounded-lg hover:bg-gray-700 text-center"
+                    >
+                      <DollarSign size={24} className="text-green-400 mx-auto mb-2" />
+                      <span className="text-sm text-white">Add Prices</span>
+                    </button>
+                    <button
+                      onClick={() => setShowBulkImport(true)}
+                      className="p-4 bg-gray-800 rounded-lg hover:bg-gray-700 text-center"
+                    >
+                      <Upload size={24} className="text-blue-400 mx-auto mb-2" />
+                      <span className="text-sm text-white">Bulk Import</span>
+                    </button>
+                    <button
+                      onClick={() => { setActiveTab('reports'); generateReport(); }}
+                      className="p-4 bg-gray-800 rounded-lg hover:bg-gray-700 text-center"
+                    >
+                      <BarChart3 size={24} className="text-purple-400 mx-auto mb-2" />
+                      <span className="text-sm text-white">View Reports</span>
+                    </button>
+                    <button
+                      onClick={() => openCommodityModal()}
+                      className="p-4 bg-gray-800 rounded-lg hover:bg-gray-700 text-center"
+                    >
+                      <Plus size={24} className="text-orange-400 mx-auto mb-2" />
+                      <span className="text-sm text-white">Add Commodity</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Getting Started */}
+                <div className="bg-gray-900 rounded-xl p-4 md:p-6 border border-gray-800">
+                  <h3 className="font-semibold text-white mb-4">📚 Getting Started</h3>
                   <ol className="space-y-2 text-sm md:text-base text-gray-300">
                     <li>1. Go to <button onClick={() => setActiveTab('prices')} className="text-green-400 hover:underline">Price Entry</button> to add daily prices</li>
                     <li>2. Select a market and date</li>
@@ -584,14 +1473,23 @@ export default function AdminDashboard() {
                     <h2 className="text-xl md:text-2xl font-bold text-white">Price Entry</h2>
                     <p className="text-sm md:text-base text-gray-400">Enter commodity prices for markets</p>
                   </div>
-                  <button
-                    onClick={savePrices}
-                    disabled={saving}
-                    className="flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 md:px-6 py-3 rounded-xl font-medium disabled:opacity-50 w-full sm:w-auto"
-                  >
-                    {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
-                    Save All
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setShowBulkImport(true)}
+                      className="flex items-center justify-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-3 rounded-xl font-medium"
+                    >
+                      <Upload size={18} />
+                      Bulk Import
+                    </button>
+                    <button
+                      onClick={savePrices}
+                      disabled={saving}
+                      className="flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 md:px-6 py-3 rounded-xl font-medium disabled:opacity-50"
+                    >
+                      {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+                      Save All
+                    </button>
+                  </div>
                 </div>
 
                 {/* Market & Date Selection */}
@@ -605,7 +1503,7 @@ export default function AdminDashboard() {
                         onChange={(e) => setSelectedMarket(e.target.value)}
                         className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-green-500 text-sm md:text-base"
                       >
-                        {markets.map((market) => (
+                        {markets.filter(m => m.is_active).map((market) => (
                           <option key={market.id} value={market.id}>
                             {market.name} - {market.state}
                           </option>
@@ -636,7 +1534,7 @@ export default function AdminDashboard() {
                         {category}
                       </h4>
                       <div className="space-y-2">
-                        {items.map((commodity) => (
+                        {items.filter(c => c.is_active).map((commodity) => (
                           <div
                             key={commodity.id}
                             className="flex flex-col sm:flex-row sm:items-center justify-between p-3 md:p-4 bg-gray-800 rounded-xl gap-3"
@@ -672,7 +1570,16 @@ export default function AdminDashboard() {
             {/* ============================================ */}
             {activeTab === 'commodities' && (
               <div className="space-y-4 md:space-y-6">
-                <h2 className="text-xl md:text-2xl font-bold text-white">Commodities</h2>
+                <div className="flex justify-between items-center">
+                  <h2 className="text-xl md:text-2xl font-bold text-white">Commodities</h2>
+                  <button
+                    onClick={() => openCommodityModal()}
+                    className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg"
+                  >
+                    <Plus size={18} />
+                    Add New
+                  </button>
+                </div>
 
                 {/* Mobile Card View */}
                 <div className="md:hidden space-y-3">
@@ -684,11 +1591,29 @@ export default function AdminDashboard() {
                           <p className="font-medium text-white">{commodity.name}</p>
                           <p className="text-xs text-gray-400">{commodity.category}</p>
                         </div>
-                        <span className="px-2 py-1 bg-green-500/20 text-green-400 rounded-full text-xs">
-                          Active
+                        <span className={`px-2 py-1 rounded-full text-xs ${
+                          commodity.is_active
+                            ? 'bg-green-500/20 text-green-400'
+                            : 'bg-gray-500/20 text-gray-400'
+                        }`}>
+                          {commodity.is_active ? 'Active' : 'Inactive'}
                         </span>
                       </div>
-                      <p className="text-sm text-gray-400">Unit: {commodity.unit}</p>
+                      <p className="text-sm text-gray-400 mb-3">Unit: {commodity.unit}</p>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => openCommodityModal(commodity)}
+                          className="flex-1 px-3 py-2 bg-gray-800 text-blue-400 rounded-lg text-sm flex items-center justify-center gap-1"
+                        >
+                          <Edit2 size={14} /> Edit
+                        </button>
+                        <button
+                          onClick={() => deleteCommodity(commodity)}
+                          className="flex-1 px-3 py-2 bg-gray-800 text-red-400 rounded-lg text-sm flex items-center justify-center gap-1"
+                        >
+                          <Trash2 size={14} /> Delete
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -703,6 +1628,7 @@ export default function AdminDashboard() {
                           <th className="text-left p-4 text-gray-400 font-medium">Category</th>
                           <th className="text-left p-4 text-gray-400 font-medium">Unit</th>
                           <th className="text-left p-4 text-gray-400 font-medium">Status</th>
+                          <th className="text-right p-4 text-gray-400 font-medium">Actions</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -717,9 +1643,29 @@ export default function AdminDashboard() {
                             <td className="p-4 text-gray-400">{commodity.category}</td>
                             <td className="p-4 text-gray-400">{commodity.unit}</td>
                             <td className="p-4">
-                              <span className="px-2 py-1 bg-green-500/20 text-green-400 rounded-full text-xs">
-                                Active
+                              <span className={`px-2 py-1 rounded-full text-xs ${
+                                commodity.is_active
+                                  ? 'bg-green-500/20 text-green-400'
+                                  : 'bg-gray-500/20 text-gray-400'
+                              }`}>
+                                {commodity.is_active ? 'Active' : 'Inactive'}
                               </span>
+                            </td>
+                            <td className="p-4">
+                              <div className="flex justify-end gap-2">
+                                <button
+                                  onClick={() => openCommodityModal(commodity)}
+                                  className="p-2 text-blue-400 hover:bg-gray-700 rounded-lg"
+                                >
+                                  <Edit2 size={16} />
+                                </button>
+                                <button
+                                  onClick={() => deleteCommodity(commodity)}
+                                  className="p-2 text-red-400 hover:bg-gray-700 rounded-lg"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         ))}
@@ -735,16 +1681,50 @@ export default function AdminDashboard() {
             {/* ============================================ */}
             {activeTab === 'markets' && (
               <div className="space-y-4 md:space-y-6">
-                <h2 className="text-xl md:text-2xl font-bold text-white">Markets</h2>
+                <div className="flex justify-between items-center">
+                  <h2 className="text-xl md:text-2xl font-bold text-white">Markets</h2>
+                  <button
+                    onClick={() => openMarketModal()}
+                    className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg"
+                  >
+                    <Plus size={18} />
+                    Add New
+                  </button>
+                </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
                   {markets.map((market) => (
                     <div key={market.id} className="bg-gray-900 rounded-xl p-4 md:p-6 border border-gray-800">
-                      <h3 className="text-base md:text-lg font-bold text-white">{market.name}</h3>
-                      <p className="text-sm md:text-base text-gray-400 mt-1">{market.city}, {market.state}</p>
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <h3 className="text-base md:text-lg font-bold text-white">{market.name}</h3>
+                          <p className="text-sm md:text-base text-gray-400 mt-1">{market.city}, {market.state}</p>
+                        </div>
+                        <span className={`px-2 py-1 rounded-full text-xs ${
+                          market.is_active
+                            ? 'bg-green-500/20 text-green-400'
+                            : 'bg-gray-500/20 text-gray-400'
+                        }`}>
+                          {market.is_active ? 'Active' : 'Inactive'}
+                        </span>
+                      </div>
                       <p className="text-xs md:text-sm text-gray-500 mt-2 line-clamp-2">{market.description}</p>
-                      <div className="mt-4 pt-4 border-t border-gray-800">
+                      <div className="mt-4 pt-4 border-t border-gray-800 flex justify-between items-center">
                         <span className="text-xs text-gray-400">{market.region}</span>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => openMarketModal(market)}
+                            className="p-2 text-blue-400 hover:bg-gray-800 rounded-lg"
+                          >
+                            <Edit2 size={16} />
+                          </button>
+                          <button
+                            onClick={() => deleteMarket(market)}
+                            className="p-2 text-red-400 hover:bg-gray-800 rounded-lg"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -753,19 +1733,374 @@ export default function AdminDashboard() {
             )}
 
             {/* ============================================ */}
+            {/* PRICE HISTORY TAB */}
+            {/* ============================================ */}
+            {activeTab === 'history' && (
+              <div className="space-y-4 md:space-y-6">
+                <h2 className="text-xl md:text-2xl font-bold text-white">Price History</h2>
+
+                {/* Filters */}
+                <div className="bg-gray-900 rounded-xl p-4 border border-gray-800">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                      <label className="block text-sm text-gray-400 mb-1">Market</label>
+                      <select
+                        value={historyFilters.market}
+                        onChange={(e) => setHistoryFilters({...historyFilters, market: e.target.value})}
+                        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm"
+                      >
+                        <option value="all">All Markets</option>
+                        {markets.map(m => (
+                          <option key={m.id} value={m.id}>{m.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-400 mb-1">Commodity</label>
+                      <select
+                        value={historyFilters.commodity}
+                        onChange={(e) => setHistoryFilters({...historyFilters, commodity: e.target.value})}
+                        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm"
+                      >
+                        <option value="all">All Commodities</option>
+                        {commodities.map(c => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-400 mb-1">From Date</label>
+                      <input
+                        type="date"
+                        value={historyFilters.startDate}
+                        onChange={(e) => setHistoryFilters({...historyFilters, startDate: e.target.value})}
+                        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-400 mb-1">To Date</label>
+                      <input
+                        type="date"
+                        value={historyFilters.endDate}
+                        onChange={(e) => setHistoryFilters({...historyFilters, endDate: e.target.value})}
+                        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm"
+                      />
+                    </div>
+                  </div>
+                  <button
+                    onClick={fetchPriceHistory}
+                    className="mt-4 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 flex items-center gap-2"
+                  >
+                    <Filter size={16} />
+                    Apply Filters
+                  </button>
+                </div>
+
+                {/* History Table */}
+                {loadingHistory ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 size={32} className="animate-spin text-green-500" />
+                  </div>
+                ) : (
+                  <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead className="bg-gray-800">
+                          <tr>
+                            <th className="text-left p-3 text-gray-400">Date</th>
+                            <th className="text-left p-3 text-gray-400">Market</th>
+                            <th className="text-left p-3 text-gray-400">Commodity</th>
+                            <th className="text-right p-3 text-gray-400">Price (₦)</th>
+                            <th className="text-center p-3 text-gray-400">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {priceHistory.length === 0 ? (
+                            <tr>
+                              <td colSpan={5} className="p-8 text-center text-gray-400">
+                                No price history found. Apply filters and search.
+                              </td>
+                            </tr>
+                          ) : (
+                            priceHistory.map((entry) => (
+                              <tr key={entry.id} className="border-t border-gray-800 hover:bg-gray-800/50">
+                                <td className="p-3 text-white">{entry.date}</td>
+                                <td className="p-3 text-gray-300">{entry.market?.name || 'N/A'}</td>
+                                <td className="p-3 text-gray-300">
+                                  <span className="mr-2">{entry.commodity?.icon}</span>
+                                  {entry.commodity?.name || 'N/A'}
+                                </td>
+                                <td className="p-3 text-white text-right">₦{entry.price?.toLocaleString()}</td>
+                                <td className="p-3 text-center">
+                                  <button
+                                    onClick={() => deletePriceEntry(entry.id)}
+                                    className="p-1 text-red-400 hover:bg-gray-700 rounded"
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                </td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ============================================ */}
             {/* REPORTS TAB */}
             {/* ============================================ */}
             {activeTab === 'reports' && (
               <div className="space-y-4 md:space-y-6">
-                <h2 className="text-xl md:text-2xl font-bold text-white">Reports</h2>
-
-                <div className="bg-gray-900 rounded-xl p-6 md:p-8 border border-gray-800 text-center">
-                  <BarChart3 size={48} className="mx-auto text-gray-600 mb-4" />
-                  <h3 className="text-lg md:text-xl font-semibold text-white mb-2">Reports Coming Soon</h3>
-                  <p className="text-sm md:text-base text-gray-400">
-                    Export functionality and detailed analytics will be available in the next update.
-                  </p>
+                <div className="flex justify-between items-center">
+                  <h2 className="text-xl md:text-2xl font-bold text-white">Reports</h2>
+                  <button
+                    onClick={exportToCSV}
+                    disabled={!reportData || reportData.length === 0}
+                    className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg disabled:opacity-50"
+                  >
+                    <Download size={18} />
+                    Export CSV
+                  </button>
                 </div>
+
+                {/* Report Filters */}
+                <div className="bg-gray-900 rounded-xl p-4 border border-gray-800">
+                  <h3 className="font-semibold text-white mb-4">Generate Report</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                      <label className="block text-sm text-gray-400 mb-1">Market</label>
+                      <select
+                        value={reportMarket}
+                        onChange={(e) => setReportMarket(e.target.value)}
+                        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm"
+                      >
+                        <option value="all">All Markets</option>
+                        {markets.map(m => (
+                          <option key={m.id} value={m.id}>{m.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-400 mb-1">From Date</label>
+                      <input
+                        type="date"
+                        value={reportDateRange.start}
+                        onChange={(e) => setReportDateRange({...reportDateRange, start: e.target.value})}
+                        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-400 mb-1">To Date</label>
+                      <input
+                        type="date"
+                        value={reportDateRange.end}
+                        onChange={(e) => setReportDateRange({...reportDateRange, end: e.target.value})}
+                        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm"
+                      />
+                    </div>
+                    <div className="flex items-end">
+                      <button
+                        onClick={generateReport}
+                        disabled={loadingReport}
+                        className="w-full px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 flex items-center justify-center gap-2"
+                      >
+                        {loadingReport && <Loader2 size={16} className="animate-spin" />}
+                        Generate
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Report Results */}
+                {loadingReport ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 size={32} className="animate-spin text-green-500" />
+                  </div>
+                ) : reportData ? (
+                  <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
+                    <div className="p-4 border-b border-gray-800">
+                      <p className="text-gray-400">
+                        Found <span className="text-white font-semibold">{reportData.length}</span> records
+                      </p>
+                    </div>
+                    <div className="overflow-x-auto max-h-96">
+                      <table className="w-full text-sm">
+                        <thead className="bg-gray-800 sticky top-0">
+                          <tr>
+                            <th className="text-left p-3 text-gray-400">Date</th>
+                            <th className="text-left p-3 text-gray-400">Market</th>
+                            <th className="text-left p-3 text-gray-400">Commodity</th>
+                            <th className="text-left p-3 text-gray-400">Category</th>
+                            <th className="text-right p-3 text-gray-400">Price (₦)</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {reportData.map((entry, idx) => (
+                            <tr key={idx} className="border-t border-gray-800 hover:bg-gray-800/50">
+                              <td className="p-3 text-white">{entry.date}</td>
+                              <td className="p-3 text-gray-300">{entry.market?.name || 'N/A'}</td>
+                              <td className="p-3 text-gray-300">
+                                <span className="mr-2">{entry.commodity?.icon}</span>
+                                {entry.commodity?.name || 'N/A'}
+                              </td>
+                              <td className="p-3 text-gray-400">{entry.commodity?.category || 'N/A'}</td>
+                              <td className="p-3 text-white text-right">₦{entry.price?.toLocaleString()}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-gray-900 rounded-xl p-6 md:p-8 border border-gray-800 text-center">
+                    <BarChart3 size={48} className="mx-auto text-gray-600 mb-4" />
+                    <h3 className="text-lg md:text-xl font-semibold text-white mb-2">Generate a Report</h3>
+                    <p className="text-sm md:text-base text-gray-400">
+                      Select filters above and click Generate to view price data.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ============================================ */}
+            {/* ACTIVITY LOG TAB */}
+            {/* ============================================ */}
+            {activeTab === 'activity' && (
+              <div className="space-y-4 md:space-y-6">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-xl md:text-2xl font-bold text-white">Activity Log</h2>
+                  <button
+                    onClick={fetchActivityLog}
+                    className="flex items-center gap-2 text-gray-400 hover:text-white"
+                  >
+                    <RefreshCw size={18} />
+                    Refresh
+                  </button>
+                </div>
+
+                {loadingActivity ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 size={32} className="animate-spin text-green-500" />
+                  </div>
+                ) : activityLog.length === 0 ? (
+                  <div className="bg-gray-900 rounded-xl p-6 md:p-8 border border-gray-800 text-center">
+                    <Activity size={48} className="mx-auto text-gray-600 mb-4" />
+                    <h3 className="text-lg font-semibold text-white mb-2">No Activity Yet</h3>
+                    <p className="text-gray-400">
+                      Activity will be logged as you make changes in the admin panel.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
+                    <div className="divide-y divide-gray-800">
+                      {activityLog.map((log, idx) => (
+                        <div key={idx} className="p-4 hover:bg-gray-800/50">
+                          <div className="flex items-start gap-3">
+                            <div className="w-8 h-8 bg-gray-800 rounded-full flex items-center justify-center flex-shrink-0">
+                              <Activity size={14} className="text-green-400" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-white text-sm">{log.details}</p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="text-xs text-gray-500">{log.user_email}</span>
+                                <span className="text-xs text-gray-600">•</span>
+                                <span className="text-xs text-gray-500">
+                                  {new Date(log.created_at).toLocaleString('en-NG')}
+                                </span>
+                              </div>
+                            </div>
+                            <span className="text-xs px-2 py-1 bg-gray-800 text-gray-400 rounded">
+                              {log.action}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ============================================ */}
+            {/* USERS TAB */}
+            {/* ============================================ */}
+            {activeTab === 'users' && (
+              <div className="space-y-4 md:space-y-6">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-xl md:text-2xl font-bold text-white">User Management</h2>
+                  <button
+                    onClick={fetchUsers}
+                    className="flex items-center gap-2 text-gray-400 hover:text-white"
+                  >
+                    <RefreshCw size={18} />
+                    Refresh
+                  </button>
+                </div>
+
+                {loadingUsers ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 size={32} className="animate-spin text-green-500" />
+                  </div>
+                ) : users.length === 0 ? (
+                  <div className="bg-gray-900 rounded-xl p-6 md:p-8 border border-gray-800 text-center">
+                    <Users size={48} className="mx-auto text-gray-600 mb-4" />
+                    <h3 className="text-lg font-semibold text-white mb-2">No Users Found</h3>
+                    <p className="text-gray-400">
+                      Users will appear here once they sign up.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead className="bg-gray-800">
+                          <tr>
+                            <th className="text-left p-3 text-gray-400">Email</th>
+                            <th className="text-left p-3 text-gray-400">Role</th>
+                            <th className="text-left p-3 text-gray-400">Joined</th>
+                            <th className="text-center p-3 text-gray-400">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {users.map((u) => (
+                            <tr key={u.id} className="border-t border-gray-800 hover:bg-gray-800/50">
+                              <td className="p-3 text-white">{u.email}</td>
+                              <td className="p-3">
+                                <span className={`px-2 py-1 rounded-full text-xs ${
+                                  u.role === 'admin'
+                                    ? 'bg-purple-500/20 text-purple-400'
+                                    : 'bg-gray-500/20 text-gray-400'
+                                }`}>
+                                  {u.role || 'user'}
+                                </span>
+                              </td>
+                              <td className="p-3 text-gray-400">
+                                {u.created_at ? new Date(u.created_at).toLocaleDateString() : 'N/A'}
+                              </td>
+                              <td className="p-3 text-center">
+                                {u.id !== user.id && (
+                                  <select
+                                    value={u.role || 'user'}
+                                    onChange={(e) => updateUserRole(u.id, e.target.value)}
+                                    className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-white text-xs"
+                                  >
+                                    <option value="user">User</option>
+                                    <option value="admin">Admin</option>
+                                  </select>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
