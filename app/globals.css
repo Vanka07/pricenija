@@ -8,10 +8,26 @@
     box-sizing: border-box;
 }
 
+html {
+    scroll-behavior: smooth;
+}
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-    background-color: #0c0a09;
-    color: #fafaf9;
+    background-color: #030712;
+    color: #f9fafb;
+}
+
+/* Focus-visible styles for keyboard navigation (WCAG 2.1) */
+:focus-visible {
+    outline: 2px solid #22c55e;
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+/* Remove focus outline for mouse users */
+:focus:not(:focus-visible) {
+    outline: none;
 }
 
 ::-webkit-scrollbar {
@@ -20,14 +36,24 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-    background: #1c1917;
+    background: #111827;
 }
 
 ::-webkit-scrollbar-thumb {
-    background: #44403c;
+    background: #374151;
     border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: #57534e;
+    background: #4b5563;
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
 }

@@ -8,12 +8,17 @@ import {
     Twitter, Facebook, Instagram
 } from 'lucide-react';
 
-// Logo Component
+// Logo Component - matches main page SVG logo
 const Logo = ({ size = 'md' }) => {
     const sizes = { sm: 'w-8 h-8', md: 'w-10 h-10', lg: 'w-12 h-12' };
+    const svgSizes = { sm: 'w-5 h-5', md: 'w-6 h-6', lg: 'w-8 h-8' };
     return (
           <div className={`${sizes[size]} bg-gradient-to-br from-green-400 to-green-600 rounded-xl flex items-center justify-center shadow-lg`}>
-        <span className="text-white font-bold text-sm">PN</span>
+        <svg viewBox="0 0 40 40" className={svgSizes[size]}>
+          <text x="20" y="21" textAnchor="middle" fill="white" fontSize="17" fontWeight="bold" fontFamily="system-ui">₦</text>
+          <path d="M8 32 L16 28 L24 30 L32 24" stroke="#FBBF24" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M30 26 L32 24 L30 22" stroke="#FBBF24" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
   </div>
   );
 };
@@ -269,17 +274,20 @@ export default function AboutPage() {
                             support@pricenija.com
           </a>
                 <div className="pt-4 border-t border-gray-800">
-                            <p className="text-gray-500 text-sm mb-3">Follow us (coming soon)</p>
+                            <p className="text-gray-500 text-sm mb-3">Follow us</p>
                   <div className="flex gap-3">
-                              <div className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center text-gray-500">
+                              <a href="https://twitter.com/pricenija" target="_blank" rel="noopener noreferrer"
+                                className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700 transition" aria-label="Twitter">
                                 <Twitter size={20} />
-          </div>
-                    <div className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center text-gray-500">
+          </a>
+                    <a href="https://facebook.com/pricenija" target="_blank" rel="noopener noreferrer"
+                      className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700 transition" aria-label="Facebook">
                                 <Facebook size={20} />
-          </div>
-                    <div className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center text-gray-500">
+          </a>
+                    <a href="https://instagram.com/pricenija" target="_blank" rel="noopener noreferrer"
+                      className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700 transition" aria-label="Instagram">
                                 <Instagram size={20} />
-          </div>
+          </a>
           </div>
           </div>
           </div>

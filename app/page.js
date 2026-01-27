@@ -34,6 +34,13 @@ export default function PriceNija() {
     setActiveTabState(tab);
     if (typeof window !== 'undefined') {
       window.history.pushState({ tab }, '', `#${tab}`);
+      const titles = {
+        dashboard: 'PriceNija - Nigerian Commodity Market Price Tracker',
+        prices: 'Prices - PriceNija',
+        markets: 'Markets - PriceNija',
+        watchlist: 'Watchlist - PriceNija',
+      };
+      document.title = titles[tab] || titles.dashboard;
     }
   }, []);
 
@@ -582,6 +589,13 @@ export default function PriceNija() {
         .hover\\:bg-gray-750:hover {
           background-color: rgb(38, 42, 51);
         }
+        .tab-content {
+          animation: tab-fade-in 0.3s ease-out;
+        }
+        @keyframes tab-fade-in {
+          from { opacity: 0; transform: translateY(8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
       `}</style>
       {/* Skip to content link for keyboard/screen reader users */}
       <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:bg-green-500 focus:text-white focus:px-4 focus:py-2 focus:rounded-lg">
@@ -709,7 +723,7 @@ export default function PriceNija() {
 
         {/* Dashboard Tab */}
         {activeTab === 'dashboard' && (
-          <div className="space-y-4 sm:space-y-6">
+          <div className="space-y-4 sm:space-y-6 tab-content">
             {/* Hero Section for first-time visitors */}
             {!user && (
               <div className="bg-gradient-to-r from-green-900/50 to-blue-900/50 rounded-2xl p-6 sm:p-8 border border-green-800/50 mb-2">
@@ -1010,7 +1024,7 @@ export default function PriceNija() {
 
         {/* Prices Tab */}
         {activeTab === 'prices' && (
-          <div className="grid lg:grid-cols-3 gap-4 sm:gap-6">
+          <div className="grid lg:grid-cols-3 gap-4 sm:gap-6 tab-content">
             {/* Commodity List */}
             <div className="lg:col-span-1 space-y-4">
               <div className="relative">
@@ -1220,7 +1234,7 @@ export default function PriceNija() {
 
         {/* Markets Tab */}
         {activeTab === 'markets' && (
-          <div className="space-y-4 sm:space-y-6">
+          <div className="space-y-4 sm:space-y-6 tab-content">
             <div>
               <h1 className="text-xl sm:text-2xl font-bold mb-1">Markets Directory</h1>
               <p className="text-gray-400 text-sm sm:text-base">Major commodity markets across Nigeria</p>
@@ -1266,7 +1280,7 @@ export default function PriceNija() {
 
         {/* Watchlist Tab */}
         {activeTab === 'watchlist' && (
-          <div className="space-y-4 sm:space-y-6">
+          <div className="space-y-4 sm:space-y-6 tab-content">
             <div>
               <h1 className="text-xl sm:text-2xl font-bold mb-1">Your Watchlist</h1>
               <p className="text-gray-400 text-sm sm:text-base">Track your favorite commodities</p>
@@ -1352,17 +1366,20 @@ export default function PriceNija() {
               <p className="text-gray-400 text-sm mb-4">
                 Nigeria&apos;s leading agricultural commodity price tracker. Real-time market intelligence for smarter decisions.
               </p>
-              {/* Social Links - Static for now */}
+              {/* Social Links */}
               <div className="flex gap-3">
-                <div className="w-9 h-9 bg-gray-800 rounded-lg flex items-center justify-center text-gray-400">
+                <a href="https://twitter.com/pricenija" target="_blank" rel="noopener noreferrer"
+                  className="w-9 h-9 bg-gray-800 rounded-lg flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700 transition" aria-label="Twitter">
                   <Twitter size={18} />
-                </div>
-                <div className="w-9 h-9 bg-gray-800 rounded-lg flex items-center justify-center text-gray-400">
+                </a>
+                <a href="https://facebook.com/pricenija" target="_blank" rel="noopener noreferrer"
+                  className="w-9 h-9 bg-gray-800 rounded-lg flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700 transition" aria-label="Facebook">
                   <Facebook size={18} />
-                </div>
-                <div className="w-9 h-9 bg-gray-800 rounded-lg flex items-center justify-center text-gray-400">
+                </a>
+                <a href="https://instagram.com/pricenija" target="_blank" rel="noopener noreferrer"
+                  className="w-9 h-9 bg-gray-800 rounded-lg flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700 transition" aria-label="Instagram">
                   <Instagram size={18} />
-                </div>
+                </a>
               </div>
             </div>
 
