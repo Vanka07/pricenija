@@ -385,7 +385,7 @@ export default function PriceNija() {
             <h2 className="text-lg sm:text-xl font-bold text-white">
               {authMode === 'login' ? 'Welcome Back' : 'Create Account'}
             </h2>
-            <button onClick={() => setShowAuthModal(false)} className="text-gray-400 hover:text-white">
+            <button onClick={() => setShowAuthModal(false)} className="text-gray-400 hover:text-white" aria-label="Close dialog">
               <X size={24} />
             </button>
           </div>
@@ -428,7 +428,8 @@ export default function PriceNija() {
                   placeholder="Enter your password" required minLength={6}
                 />
                 <button type="button" onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}>
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
@@ -620,7 +621,8 @@ export default function PriceNija() {
             <div className="flex items-center gap-1 sm:gap-2">
               <div className="relative">
                 <button className="relative p-2 text-gray-400 hover:text-white"
-                  onClick={() => setShowNotifications(!showNotifications)}>
+                  onClick={() => setShowNotifications(!showNotifications)}
+                  aria-label="Notifications">
                   <Bell size={20} />
                   {watchlist.length > 0 && (
                     <span className="absolute top-1 right-1 w-2 h-2 bg-green-500 rounded-full"></span>
@@ -633,7 +635,7 @@ export default function PriceNija() {
                 <div className="flex items-center gap-1 sm:gap-2">
                   <span className="hidden sm:inline text-sm text-gray-400">{user.email?.split('@')[0]}</span>
                   <button onClick={async () => { await supabase.auth.signOut(); setUser(null); setWatchlist([]); }}
-                    className="p-2 text-gray-400 hover:text-white" title="Sign out">
+                    className="p-2 text-gray-400 hover:text-white" title="Sign out" aria-label="Sign out">
                     <LogOut size={20} />
                   </button>
                 </div>
@@ -645,7 +647,8 @@ export default function PriceNija() {
               )}
 
               <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="md:hidden p-2 text-gray-400 hover:text-white">
+                className="md:hidden p-2 text-gray-400 hover:text-white"
+                aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}>
                 {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
               </button>
             </div>
@@ -689,7 +692,8 @@ export default function PriceNija() {
             </span>
           </div>
             <button onClick={handleRefresh} disabled={refreshing}
-              className="flex items-center gap-1 text-green-400 hover:text-green-300 disabled:opacity-50">
+              className="flex items-center gap-1 text-green-400 hover:text-green-300 disabled:opacity-50"
+              aria-label="Refresh data">
               <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
               <span className="hidden sm:inline">Refresh</span>
             </button>
