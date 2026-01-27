@@ -5,17 +5,38 @@ import {
   Search, TrendingUp, TrendingDown, MapPin, Bell,
   ChevronRight, ArrowUpRight, ArrowDownRight, Minus,
   RefreshCw, Menu, X, Star, StarOff, Home, BarChart3,
-  User, LogIn, LogOut, Loader2, AlertCircle, Eye, EyeOff,
+  User, LogIn, LogOut, Loader2, AlertCircle,
   Twitter, Facebook, Instagram, Mail, Shield, FileText
 } from 'lucide-react';
-import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
-} from 'recharts';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { supabase, onAuthStateChange } from '../lib/supabase';
 import { PageLoadingSkeleton } from './components/LoadingSkeleton';
+import Logo from './components/Logo';
+import AuthModal from './components/AuthModal';
+import NotificationDropdown from './components/NotificationDropdown';
+import BottomNav from './components/BottomNav';
+import { ToastProvider, useToast } from './components/Toast';
+
+// Lazy-load Recharts (~50KB) - only loaded when price chart is visible
+const LazyAreaChart = dynamic(() => import('recharts').then(mod => mod.AreaChart), { ssr: false });
+const LazyArea = dynamic(() => import('recharts').then(mod => mod.Area), { ssr: false });
+const LazyXAxis = dynamic(() => import('recharts').then(mod => mod.XAxis), { ssr: false });
+const LazyYAxis = dynamic(() => import('recharts').then(mod => mod.YAxis), { ssr: false });
+const LazyCartesianGrid = dynamic(() => import('recharts').then(mod => mod.CartesianGrid), { ssr: false });
+const LazyTooltip = dynamic(() => import('recharts').then(mod => mod.Tooltip), { ssr: false });
+const LazyResponsiveContainer = dynamic(() => import('recharts').then(mod => mod.ResponsiveContainer), { ssr: false });
 
 export default function PriceNija() {
+  return (
+    <ToastProvider>
+      <PriceNijaApp />
+    </ToastProvider>
+  );
+}
+
+function PriceNijaApp() {
+  const toast = useToast();
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -280,24 +301,31 @@ export default function PriceNija() {
 
   const toggleWatchlist = async (commodityId) => {
     if (!user) { setShowAuthModal(true); return; }
+    const commodity = commodities.find(c => c.id === commodityId);
+    const name = commodity?.name || 'Item';
     try {
       if (watchlist.includes(commodityId)) {
         const { error } = await supabase.from('watchlist').delete().eq('user_id', user.id).eq('commodity_id', commodityId);
         if (error) {
           console.error('Error removing from watchlist:', error);
+          toast(`Failed to remove ${name} from watchlist`, 'error');
           return;
         }
         setWatchlist(prev => prev.filter(id => id !== commodityId));
+        toast(`${name} removed from watchlist`, 'info');
       } else {
         const { error } = await supabase.from('watchlist').insert({ user_id: user.id, commodity_id: commodityId });
         if (error) {
           console.error('Error adding to watchlist:', error);
+          toast(`Failed to add ${name} to watchlist`, 'error');
           return;
         }
         setWatchlist(prev => [...prev, commodityId]);
+        toast(`${name} added to watchlist`, 'success');
       }
     } catch (err) {
       console.error('Error updating watchlist:', err);
+      toast('Something went wrong. Please try again.', 'error');
     }
   };
 
@@ -347,198 +375,6 @@ export default function PriceNija() {
     const grains = Object.values(getPriceData.commodityPrices).filter(p => p.commodity.category === 'Grains');
     if (grains.length === 0) return 0;
     return Math.round(grains.reduce((sum, p) => sum + p.avgPrice, 0) / grains.length);
-  };
-
-  // Auth Modal Component
-  const AuthModal = () => {
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [fullName, setFullName] = useState('');
-    const [showPassword, setShowPassword] = useState(false);
-    const [authError, setAuthError] = useState('');
-    const [authLoading, setAuthLoading] = useState(false);
-    const [successMessage, setSuccessMessage] = useState('');
-
-    const handleSubmit = async (e) => {
-      e.preventDefault();
-      setAuthError('');
-      setSuccessMessage('');
-      setAuthLoading(true);
-      try {
-        if (authMode === 'register') {
-          const { error } = await supabase.auth.signUp({
-            email, password, options: { data: { full_name: fullName } }
-          });
-          if (error) throw error;
-          setSuccessMessage('Account created! Please check your email to verify.');
-        } else {
-          const { error } = await supabase.auth.signInWithPassword({ email, password });
-          if (error) throw error;
-          setShowAuthModal(false);
-        }
-      } catch (err) {
-        setAuthError(err.message);
-      } finally {
-        setAuthLoading(false);
-      }
-    };
-
-    if (!showAuthModal) return null;
-
-    return (
-      <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-        <div className="bg-gray-900 rounded-2xl p-4 sm:p-6 w-full max-w-md border border-gray-700">
-          <div className="flex justify-between items-center mb-4 sm:mb-6">
-            <h2 className="text-lg sm:text-xl font-bold text-white">
-              {authMode === 'login' ? 'Welcome Back' : 'Create Account'}
-            </h2>
-            <button onClick={() => setShowAuthModal(false)} className="text-gray-400 hover:text-white" aria-label="Close dialog">
-              <X size={24} />
-            </button>
-          </div>
-          {authError && (
-            <div className="bg-red-500/20 border border-red-500 rounded-lg p-3 mb-4 text-red-400 text-sm">
-              {authError}
-            </div>
-          )}
-          {successMessage && (
-            <div className="bg-green-500/20 border border-green-500 rounded-lg p-3 mb-4 text-green-400 text-sm">
-              {successMessage}
-            </div>
-          )}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {authMode === 'register' && (
-              <div>
-                <label className="block text-sm text-gray-400 mb-1">Full Name</label>
-                <input
-                  type="text" value={fullName} onChange={(e) => setFullName(e.target.value)}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-green-500"
-                  placeholder="Enter your name" required
-                />
-              </div>
-            )}
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">Email</label>
-              <input
-                type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-green-500"
-                placeholder="Enter your email" required
-              />
-            </div>
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">Password</label>
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'} value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-green-500 pr-10"
-                  placeholder="Enter your password" required minLength={6}
-                />
-                <button type="button" onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}>
-                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                </button>
-              </div>
-            </div>
-            <button type="submit" disabled={authLoading}
-              className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 rounded-lg transition disabled:opacity-50 flex items-center justify-center gap-2">
-              {authLoading && <Loader2 size={20} className="animate-spin" />}
-              {authMode === 'login' ? 'Sign In' : 'Create Account'}
-            </button>
-          </form>
-          <p className="text-center text-gray-400 mt-4 text-sm sm:text-base">
-            {authMode === 'login' ? (
-              <>Don&apos;t have an account?{' '}
-                <button onClick={() => setAuthMode('register')} className="text-green-400 hover:underline">
-                  Sign up
-                </button>
-              </>
-            ) : (
-              <>Already have an account?{' '}
-                <button onClick={() => setAuthMode('login')} className="text-green-400 hover:underline">
-                  Sign in
-                </button>
-              </>
-            )}
-          </p>
-        </div>
-      </div>
-    );
-  };
-
-  // Notification Dropdown Component
-  const NotificationDropdown = () => {
-    if (!showNotifications) return null;
-    return (
-      <div className="absolute right-0 top-12 w-72 sm:w-80 bg-gray-900 border border-gray-700 rounded-xl shadow-xl z-50">
-        <div className="p-4 border-b border-gray-700">
-          <h3 className="font-semibold text-white">Notifications</h3>
-        </div>
-        <div className="p-4">
-          <div className="text-center text-gray-400 py-4">
-            <Bell size={32} className="mx-auto mb-2 opacity-50" />
-            <p className="text-sm">No new notifications</p>
-            <p className="text-xs mt-1">Price alerts will appear here</p>
-          </div>
-        </div>
-        <div className="p-3 border-t border-gray-700">
-          <p className="text-xs text-gray-500 text-center">
-            Add items to your watchlist to receive price alerts
-          </p>
-        </div>
-      </div>
-    );
-  };
-
-  // Logo Component - Reusable across the app
-  const Logo = ({ size = 'md' }) => {
-    const sizes = {
-      sm: 'w-10 h-10',
-      md: 'w-12 h-12',
-      lg: 'w-16 h-16'
-    };
-    const svgSizes = {
-      sm: 'w-6 h-6',
-      md: 'w-8 h-8',
-      lg: 'w-10 h-10'
-    };
-    return (
-      <div className={`${sizes[size]} bg-gradient-to-br from-green-400 to-green-600 rounded-xl flex items-center justify-center shadow-lg`}>
-        <svg viewBox="0 0 40 40" className={svgSizes[size]}>
-          {/* Naira symbol - positioned higher */}
-          <text
-            x="20"
-            y="21"
-            textAnchor="middle"
-            fill="white"
-            fontSize="17"
-            fontWeight="bold"
-            fontFamily="system-ui"
-          >
-            ₦
-          </text>
-          {/* Trending line UNDER the Naira symbol - YELLOW/GOLD color */}
-          <path
-            d="M8 32 L16 28 L24 30 L32 24"
-            stroke="#FBBF24"
-            strokeWidth="2.5"
-            fill="none"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          {/* Small arrow at end of trend line - YELLOW/GOLD color */}
-          <path
-            d="M30 26 L32 24 L30 22"
-            stroke="#FBBF24"
-            strokeWidth="2"
-            fill="none"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      </div>
-    );
   };
 
   // Loading state
@@ -601,7 +437,12 @@ export default function PriceNija() {
       <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:bg-green-500 focus:text-white focus:px-4 focus:py-2 focus:rounded-lg">
         Skip to main content
       </a>
-      <AuthModal />
+      <AuthModal
+        show={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        authMode={authMode}
+        setAuthMode={setAuthMode}
+      />
 
       {/* Header */}
       <header className="sticky top-0 z-40 bg-gray-950/95 backdrop-blur border-b border-gray-800" role="banner">
@@ -638,7 +479,7 @@ export default function PriceNija() {
             {/* Right side controls */}
             <div className="flex items-center gap-1 sm:gap-2">
               <div className="relative">
-                <button className="relative p-2 text-gray-400 hover:text-white"
+                <button className="relative p-2 min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 hover:text-white"
                   onClick={() => setShowNotifications(!showNotifications)}
                   aria-label="Notifications">
                   <Bell size={20} />
@@ -646,14 +487,14 @@ export default function PriceNija() {
                     <span className="absolute top-1 right-1 w-2 h-2 bg-green-500 rounded-full"></span>
                   )}
                 </button>
-                <NotificationDropdown />
+                <NotificationDropdown show={showNotifications} />
               </div>
 
               {user ? (
                 <div className="flex items-center gap-1 sm:gap-2">
                   <span className="hidden sm:inline text-sm text-gray-400">{user.email?.split('@')[0]}</span>
                   <button onClick={async () => { await supabase.auth.signOut(); setUser(null); setWatchlist([]); }}
-                    className="p-2 text-gray-400 hover:text-white" title="Sign out" aria-label="Sign out">
+                    className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 hover:text-white" title="Sign out" aria-label="Sign out">
                     <LogOut size={20} />
                   </button>
                 </div>
@@ -665,7 +506,7 @@ export default function PriceNija() {
               )}
 
               <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="md:hidden p-2 text-gray-400 hover:text-white"
+                className="md:hidden p-2 min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 hover:text-white"
                 aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}>
                 {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
               </button>
@@ -1163,24 +1004,24 @@ export default function PriceNija() {
                     </div>
 
                     {priceHistory[`${selectedCommodity.id}-${selectedPeriod}`]?.length > 0 ? (
-                      <ResponsiveContainer width="100%" height={200} className="sm:h-[250px]">
-                        <AreaChart data={priceHistory[`${selectedCommodity.id}-${selectedPeriod}`]}>
+                      <LazyResponsiveContainer width="100%" height={200} className="sm:h-[250px]">
+                        <LazyAreaChart data={priceHistory[`${selectedCommodity.id}-${selectedPeriod}`]}>
                           <defs>
                             <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
                               <stop offset="5%" stopColor="#22c55e" stopOpacity={0.3}/>
                               <stop offset="95%" stopColor="#22c55e" stopOpacity={0}/>
                             </linearGradient>
                           </defs>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                          <XAxis dataKey="date" stroke="#9ca3af" fontSize={10} />
-                          <YAxis stroke="#9ca3af" fontSize={10} tickFormatter={(val) => '₦' + (val/1000) + 'K'} />
-                          <Tooltip
+                          <LazyCartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                          <LazyXAxis dataKey="date" stroke="#9ca3af" fontSize={10} />
+                          <LazyYAxis stroke="#9ca3af" fontSize={10} tickFormatter={(val) => '₦' + (val/1000) + 'K'} />
+                          <LazyTooltip
                             contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px' }}
                             formatter={(value) => [formatPrice(value), 'Price']}
                           />
-                          <Area type="monotone" dataKey="price" stroke="#22c55e" strokeWidth={2} fillOpacity={1} fill="url(#colorPrice)" />
-                        </AreaChart>
-                      </ResponsiveContainer>
+                          <LazyArea type="monotone" dataKey="price" stroke="#22c55e" strokeWidth={2} fillOpacity={1} fill="url(#colorPrice)" />
+                        </LazyAreaChart>
+                      </LazyResponsiveContainer>
                     ) : (
                       <div className="h-[200px] sm:h-[250px] flex items-center justify-center text-gray-500">
                         {priceHistory[`${selectedCommodity.id}-${selectedPeriod}`] === undefined
@@ -1434,6 +1275,11 @@ export default function PriceNija() {
           </div>
         </div>
       </footer>
+
+      {/* Mobile Bottom Navigation */}
+      <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
+      {/* Bottom padding for mobile bottom nav */}
+      <div className="h-16 md:hidden" />
     </div>
   );
 }

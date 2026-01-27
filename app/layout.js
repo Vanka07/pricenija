@@ -73,6 +73,7 @@ export const viewport = {
       width: 'device-width',
       initialScale: 1,
       maximumScale: 5,
+      viewportFit: 'cover',
       themeColor: '#22c55e',
 };
 
@@ -80,6 +81,8 @@ export default function RootLayout({ children }) {
       return (
               <html lang="en">
                 <head>
+      {/* PWA Manifest */}
+                  <link rel="manifest" href="/manifest.json" />
       {/* Preconnect to external domains for performance */}
                   <link rel="preconnect" href="https://fonts.googleapis.com" />
                   <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />

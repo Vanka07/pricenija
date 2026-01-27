@@ -48,6 +48,11 @@ body {
     background: #4b5563;
 }
 
+/* Safe area padding for bottom navigation on notched devices */
+.safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
 /* Reduced motion preference */
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
