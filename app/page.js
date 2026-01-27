@@ -276,7 +276,7 @@ function PriceNijaApp() {
       if (marketLatest.length > 0) {
         const avgChange = marketLatest.reduce((sum, p) => {
           const yPrice = previousPrices[`${p.commodity_id}-${market.id}`]?.price || p.price;
-          return sum + ((p.price - yPrice) / yPrice * 100);
+          return sum + (yPrice > 0 ? ((p.price - yPrice) / yPrice * 100) : 0);
         }, 0) / marketLatest.length;
         marketPrices[market.id] = { market, avgChange: parseFloat(avgChange.toFixed(1)), priceCount: marketLatest.length };
       }
@@ -665,7 +665,7 @@ function PriceNijaApp() {
                   >
                     <div className="flex justify-between items-start">
                       <div className="min-w-0 flex-1">
-                        <p className="text-blue-200 text-xs sm:text-sm">Best Market</p>
+                        <p className="text-blue-200 text-xs sm:text-sm">Lowest Prices</p>
                         <p className="text-lg sm:text-2xl font-bold mt-1 truncate">
                           {getBestMarket?.name || 'N/A'}
                         </p>
@@ -697,7 +697,7 @@ function PriceNijaApp() {
                           {getMostVolatile?.commodity?.name || 'N/A'}
                         </p>
                         <p className="text-orange-200 text-xs mt-1">
-                          {Math.abs(getMostVolatile?.change || 0).toFixed(1)}% this week
+                          {Math.abs(getMostVolatile?.change || 0).toFixed(1)}% change
                         </p>
                       </div>
                       <TrendingUp className="text-orange-200 w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0 ml-2" />
@@ -1032,7 +1032,7 @@ function PriceNijaApp() {
                             ?.sort((a, b) => a.price - b.price)
                             .map((mp) => {
                               const avgPrice = getPriceData.commodityPrices[selectedCommodity.id].avgPrice;
-                              const diff = ((mp.price - avgPrice) / avgPrice * 100).toFixed(1);
+                              const diff = avgPrice > 0 ? ((mp.price - avgPrice) / avgPrice * 100).toFixed(1) : '0.0';
                               return (
                                 <tr key={mp.market_id} className="border-b border-gray-800 hover:bg-gray-800/50">
                                   <td className="py-3 pl-4 sm:pl-0 font-medium text-sm sm:text-base">{mp.market?.name}</td>
