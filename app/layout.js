@@ -4,8 +4,13 @@ import './globals.css';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata = {
+      metadataBase: new URL('https://www.pricenija.com'),
+
       // Basic Meta Tags
-      title: 'PriceNija - Nigerian Commodity Market Price Tracker',
+      title: {
+        default: 'PriceNija - Nigerian Commodity Market Price Tracker',
+        template: '%s | PriceNija',
+      },
       description: 'Track real-time prices for grains, vegetables, tubers, and commodities across Nigeria\'s top markets. Compare prices, find the best deals, and make informed buying decisions.',
       keywords: 'Nigeria commodity prices, food prices Nigeria, market prices, grain prices, rice prices Nigeria, maize prices, agricultural prices, Dawanau market, Mile 12 market, Bodija market',
       authors: [{ name: 'PriceNija' }],
@@ -31,14 +36,6 @@ export const metadata = {
               siteName: 'PriceNija',
               title: 'PriceNija - Nigerian Commodity Market Price Tracker',
               description: 'Track real-time prices for grains, vegetables, tubers, and commodities across Nigeria\'s top markets. Compare prices and find the best deals.',
-              images: [
-                  {
-                              url: 'https://www.pricenija.com/og-image.png',
-                              width: 1200,
-                              height: 630,
-                              alt: 'PriceNija - Nigerian Commodity Market Price Tracker',
-                  },
-                      ],
       },
 
       // Twitter Card
@@ -46,7 +43,6 @@ export const metadata = {
               card: 'summary_large_image',
               title: 'PriceNija - Nigerian Commodity Market Price Tracker',
               description: 'Track real-time prices for grains, vegetables, tubers, and commodities across Nigeria\'s top markets.',
-              images: ['https://www.pricenija.com/og-image.png'],
               creator: '@pricenija',
       },
 
