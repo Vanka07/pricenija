@@ -18,6 +18,8 @@ import NotificationDropdown from './components/NotificationDropdown';
 import BottomNav from './components/BottomNav';
 import { ToastProvider, useToast } from './components/Toast';
 
+import Sparkline from './components/Sparkline';
+
 // Lazy-load entire PriceChart component (~50KB recharts bundle deferred)
 const PriceChart = dynamic(() => import('./components/PriceChart'), {
   ssr: false,
@@ -247,6 +249,14 @@ function PriceNijaApp() {
       }
     });
 
+    // Build daily averages per commodity for sparkline
+    const dailyAvgs = {};
+    prices.forEach(p => {
+      const key = `${p.commodity_id}-${p.date}`;
+      if (!dailyAvgs[key]) dailyAvgs[key] = { commodity_id: p.commodity_id, date: p.date, prices: [] };
+      dailyAvgs[key].prices.push(p.price);
+    });
+
     const commodityPrices = {};
     commodities.forEach(commodity => {
       const commodityLatest = Object.values(latestPrices).filter(p => p.commodity_id === commodity.id);
@@ -259,6 +269,13 @@ function PriceNijaApp() {
         const change = avgPrevious > 0 ? ((avgPrice - avgPrevious) / avgPrevious * 100) : 0;
         const lowestPrice = Math.min(...commodityLatest.map(p => p.price));
         const highestPrice = Math.max(...commodityLatest.map(p => p.price));
+
+        // Sparkline data: daily average prices sorted by date
+        const sparkline = Object.values(dailyAvgs)
+          .filter(d => d.commodity_id === commodity.id)
+          .sort((a, b) => a.date.localeCompare(b.date))
+          .map(d => Math.round(d.prices.reduce((s, v) => s + v, 0) / d.prices.length));
+
         commodityPrices[commodity.id] = {
           commodity, avgPrice, change: parseFloat(change.toFixed(1)),
           lowestPrice, highestPrice,
@@ -266,6 +283,7 @@ function PriceNijaApp() {
           highestMarket: commodityLatest.find(p => p.price === highestPrice)?.market,
           priceSpread: highestPrice - lowestPrice,
           marketPrices: commodityLatest,
+          sparkline,
         };
       }
     });
@@ -480,11 +498,13 @@ function PriceNijaApp() {
                   onClick={() => setShowNotifications(!showNotifications)}
                   aria-label="Notifications">
                   <Bell size={20} />
-                  {watchlist.length > 0 && (
-                    <span className="absolute top-1 right-1 w-2 h-2 bg-green-500 rounded-full"></span>
+                  {(topGainers.length > 0 || topLosers.length > 0) && (
+                    <span className="absolute top-1.5 right-1.5 min-w-[16px] h-4 bg-red-500 rounded-full flex items-center justify-center text-[10px] font-bold text-white px-1">
+                      {topGainers.length + topLosers.length}
+                    </span>
                   )}
                 </button>
-                <NotificationDropdown show={showNotifications} />
+                <NotificationDropdown show={showNotifications} topGainers={topGainers} topLosers={topLosers} />
               </div>
 
               {user ? (
@@ -557,54 +577,63 @@ function PriceNijaApp() {
         </div>
 
       {/* Main Content */}
-      <main id="main-content" className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6" role="main">
+      <main id="main-content" className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 pb-20 md:pb-6" role="main">
 
         {/* Dashboard Tab */}
         {activeTab === 'dashboard' && (
           <div className="space-y-4 sm:space-y-6 tab-content">
             {/* Hero Section for first-time visitors */}
             {!user && (
-              <div className="bg-gradient-to-r from-green-900/50 to-blue-900/50 rounded-2xl p-6 sm:p-8 border border-green-800/50 mb-2">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="relative overflow-hidden bg-gradient-to-br from-green-900/40 via-gray-900 to-blue-900/40 rounded-2xl p-6 sm:p-8 border border-green-800/30 mb-2">
+                {/* Subtle grid background */}
+                <div className="absolute inset-0 opacity-[0.04]" style={{
+                  backgroundImage: 'linear-gradient(rgba(255,255,255,.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.1) 1px, transparent 1px)',
+                  backgroundSize: '40px 40px'
+                }} />
+                {/* Glowing orbs */}
+                <div className="absolute -top-20 -right-20 w-60 h-60 bg-green-500/10 rounded-full blur-3xl" />
+                <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-blue-500/10 rounded-full blur-3xl" />
+
+                <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6">
                   <div className="flex-1">
-                    <h1 className="text-2xl sm:text-3xl font-bold mb-2">
-                      Track Agricultural Prices <span className="text-green-400">Across Nigeria</span>
+                    <div className="inline-flex items-center gap-2 bg-green-500/10 border border-green-500/20 rounded-full px-3 py-1 mb-4">
+                      <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                      <span className="text-green-400 text-xs font-medium">Live market data</span>
+                    </div>
+                    <h1 className="text-2xl sm:text-4xl font-bold mb-3 leading-tight">
+                      Compare Prices.<br />
+                      <span className="text-green-400">Save Money.</span>
                     </h1>
-                    <p className="text-gray-300 text-sm sm:text-base mb-4">
-                      Real-time commodity prices from 5+ major markets. Compare prices, track trends, and make smarter buying decisions.
+                    <p className="text-gray-300 text-sm sm:text-base mb-5 max-w-lg">
+                      Find the cheapest market for any commodity across Nigeria. Real-time prices from {markets.length}+ markets — updated daily.
                     </p>
                     <div className="flex flex-wrap gap-3">
                       <button
                         onClick={() => setShowAuthModal(true)}
-                        className="bg-green-500 hover:bg-green-600 text-white px-5 py-2.5 rounded-lg font-medium transition flex items-center gap-2"
+                        className="bg-green-500 hover:bg-green-600 text-white px-6 py-2.5 rounded-xl font-semibold transition-all duration-200 flex items-center gap-2 shadow-lg shadow-green-500/25 hover:shadow-green-500/40 hover:scale-[1.02] active:scale-[0.98]"
                       >
-                        <User size={18} /> Create Free Account
+                        <User size={18} /> Get Started Free
                       </button>
                       <button
                         onClick={() => setActiveTab('prices')}
-                        className="bg-gray-800 hover:bg-gray-700 text-white px-5 py-2.5 rounded-lg font-medium transition"
+                        className="bg-white/10 hover:bg-white/15 text-white px-6 py-2.5 rounded-xl font-medium transition-all duration-200 backdrop-blur-sm border border-white/10"
                       >
-                        Explore Prices →
+                        Explore Prices
                       </button>
                     </div>
                   </div>
-                  {/* Quick Stats - with animations */}
-                  <div className="flex gap-6 md:gap-8">
-                    <div className="text-center animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
-                      <p className="text-2xl sm:text-3xl font-bold text-green-400 animate-pulse-subtle">{commodities.length}</p>
-                      <p className="text-gray-400 text-xs sm:text-sm">Commodities</p>
-                    </div>
-                    <div className="text-center animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
-                      <p className="text-2xl sm:text-3xl font-bold text-blue-400 animate-pulse-subtle">{markets.length}</p>
-                      <p className="text-gray-400 text-xs sm:text-sm">Markets</p>
-                    </div>
-                    <div className="text-center animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
-                      <p className="text-2xl sm:text-3xl font-bold text-yellow-400 flex items-center justify-center gap-1">
-                        <span className="w-2 h-2 bg-yellow-400 rounded-full animate-ping"></span>
-                        Live
-                      </p>
-                      <p className="text-gray-400 text-xs sm:text-sm">Updates</p>
-                    </div>
+                  {/* Quick Stats */}
+                  <div className="flex gap-6 md:gap-4 md:flex-col">
+                    {[
+                      { value: commodities.length + '+', label: 'Commodities', color: 'text-green-400', delay: '0.1s' },
+                      { value: markets.length + '+', label: 'Markets', color: 'text-blue-400', delay: '0.2s' },
+                      { value: 'Daily', label: 'Updates', color: 'text-yellow-400', delay: '0.3s' },
+                    ].map((stat) => (
+                      <div key={stat.label} className="text-center md:text-right animate-fade-in-up" style={{ animationDelay: stat.delay }}>
+                        <p className={`text-2xl sm:text-3xl font-bold ${stat.color}`}>{stat.value}</p>
+                        <p className="text-gray-400 text-xs sm:text-sm">{stat.label}</p>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -666,7 +695,7 @@ function PriceNijaApp() {
                     <div className="flex justify-between items-start">
                       <div className="min-w-0 flex-1">
                         <p className="text-blue-200 text-xs sm:text-sm">Lowest Prices</p>
-                        <p className="text-lg sm:text-2xl font-bold mt-1 truncate">
+                        <p className="text-base sm:text-xl font-bold mt-1 line-clamp-2 leading-tight">
                           {getBestMarket?.name || 'N/A'}
                         </p>
                         <p className="text-blue-200 text-xs mt-1 truncate">
@@ -742,9 +771,12 @@ function PriceNijaApp() {
                               <p className="text-xs text-gray-400 truncate">{item.lowestMarket?.name || 'N/A'}</p>
                             </div>
                           </div>
-                          <span className="text-green-400 font-semibold text-sm sm:text-base flex-shrink-0 ml-2 group-hover:text-green-300 transition-colors">
-                            +{item.change.toFixed(1)}%
-                          </span>
+                          <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                            {item.sparkline?.length >= 2 && <Sparkline data={item.sparkline} color="#22c55e" width={40} height={18} />}
+                            <span className="text-green-400 font-semibold text-sm sm:text-base group-hover:text-green-300 transition-colors">
+                              +{item.change.toFixed(1)}%
+                            </span>
+                          </div>
                         </button>
                       )) : (
                         <div className="text-center py-6">
@@ -778,9 +810,12 @@ function PriceNijaApp() {
                               <p className="text-xs text-gray-400 truncate">{item.lowestMarket?.name || 'N/A'}</p>
                             </div>
                           </div>
-                          <span className="text-red-400 font-semibold text-sm sm:text-base flex-shrink-0 ml-2 group-hover:text-red-300 transition-colors">
-                            {item.change.toFixed(1)}%
-                          </span>
+                          <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                            {item.sparkline?.length >= 2 && <Sparkline data={item.sparkline} color="#ef4444" width={40} height={18} />}
+                            <span className="text-red-400 font-semibold text-sm sm:text-base group-hover:text-red-300 transition-colors">
+                              {item.change.toFixed(1)}%
+                            </span>
+                          </div>
                         </button>
                       )) : (
                         <div className="text-center py-6">
@@ -908,15 +943,25 @@ function PriceNijaApp() {
                           <p className="text-xs text-gray-400">{commodity.unit}</p>
                         </div>
                       </div>
-                      <div className="text-right flex-shrink-0 ml-2">
-                        {priceData ? (
-                          <>
-                            <p className="font-semibold text-sm sm:text-base">{formatCompactPrice(priceData.avgPrice)}</p>
-                            {renderChangeIndicator(priceData.change)}
-                          </>
-                        ) : (
-                          <p className="text-gray-500 text-xs sm:text-sm">No data</p>
+                      <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                        {priceData?.sparkline?.length >= 2 && (
+                          <Sparkline
+                            data={priceData.sparkline}
+                            color={priceData.change >= 0 ? '#22c55e' : '#ef4444'}
+                            width={48}
+                            height={20}
+                          />
                         )}
+                        <div className="text-right">
+                          {priceData ? (
+                            <>
+                              <p className="font-semibold text-sm sm:text-base">{formatCompactPrice(priceData.avgPrice)}</p>
+                              {renderChangeIndicator(priceData.change)}
+                            </>
+                          ) : (
+                            <p className="text-gray-500 text-xs sm:text-sm">No data</p>
+                          )}
+                        </div>
                       </div>
                     </button>
                   );
@@ -1068,13 +1113,13 @@ function PriceNijaApp() {
               {markets.map((market) => {
                 const marketData = getPriceData.marketPrices[market.id];
                 return (
-                  <Link href={"/markets/" + market.id} key={market.id}>
-                    <div className="bg-gray-900 rounded-2xl p-4 sm:p-6 border border-gray-800 hover:border-gray-700 transition cursor-pointer h-full">
+                  <Link href={"/markets/" + market.id} key={market.id} className="group">
+                    <div className="bg-gray-900 rounded-2xl p-4 sm:p-6 border border-gray-800 hover:border-green-500/40 hover:shadow-lg hover:shadow-green-500/5 transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] cursor-pointer h-full">
                       <div className="flex justify-between items-start mb-3 sm:mb-4">
                         <div className="min-w-0 flex-1">
-                          <h3 className="text-lg sm:text-xl font-bold truncate">{market.name}</h3>
+                          <h3 className="text-lg sm:text-xl font-bold line-clamp-2 leading-tight group-hover:text-green-400 transition-colors">{market.name}</h3>
                           <p className="text-gray-400 flex items-center gap-1 mt-1 text-sm">
-                            <MapPin size={14} />
+                            <MapPin size={14} className="flex-shrink-0" />
                             <span className="truncate">{market.city}, {market.state}</span>
                           </p>
                         </div>
@@ -1088,11 +1133,9 @@ function PriceNijaApp() {
                       <p className="text-gray-500 text-xs sm:text-sm mb-3 sm:mb-4 line-clamp-2">{market.description}</p>
                       <div className="flex items-center justify-between pt-3 sm:pt-4 border-t border-gray-800">
                         <span className="text-xs sm:text-sm text-gray-400">{market.region}</span>
-                        <div className="flex gap-1">
-                          {['🌽', '🍚', '🫘', '🥔', '🌾'].map((emoji, i) => (
-                            <span key={i} className="text-xs sm:text-sm">{emoji}</span>
-                          ))}
-                        </div>
+                        <span className="text-xs text-green-400 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                          View details <ChevronRight size={12} />
+                        </span>
                       </div>
                     </div>
                   </Link>
@@ -1111,46 +1154,71 @@ function PriceNijaApp() {
             </div>
 
             {!user ? (
-              <div className="bg-gray-900 rounded-2xl p-6 sm:p-8 text-center border border-gray-800">
-                <Star size={48} className="text-yellow-500 mx-auto mb-4" />
-                <h3 className="text-lg sm:text-xl font-semibold mb-2">Sign in to use Watchlist</h3>
-                <p className="text-gray-400 mb-4 text-sm sm:text-base">
-                  Create a free account to save your favorite commodities and get price alerts.
+              <div className="bg-gray-900 rounded-2xl p-8 sm:p-12 text-center border border-gray-800">
+                <div className="relative w-20 h-20 mx-auto mb-6">
+                  <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/20 to-orange-500/20 rounded-full animate-pulse" />
+                  <div className="absolute inset-2 bg-gray-800 rounded-full flex items-center justify-center">
+                    <Star className="text-yellow-500" size={32} />
+                  </div>
+                  <div className="absolute -top-1 -right-1 text-yellow-400 animate-bounce text-sm" style={{ animationDelay: '0.1s' }}>&#10022;</div>
+                  <div className="absolute -bottom-1 -left-1 text-yellow-500 animate-bounce text-xs" style={{ animationDelay: '0.3s' }}>&#10022;</div>
+                </div>
+                <h3 className="text-xl sm:text-2xl font-bold mb-2">Track Your Favorite Commodities</h3>
+                <p className="text-gray-400 mb-6 text-sm sm:text-base max-w-md mx-auto">
+                  Create a free account to save commodities, compare prices across markets, and get notified about price changes.
                 </p>
-                <button onClick={() => setShowAuthModal(true)}
-                  className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg font-medium">
-                  Sign In / Sign Up
-                </button>
+                <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                  <button onClick={() => setShowAuthModal(true)}
+                    className="bg-green-500 hover:bg-green-600 text-white px-6 py-2.5 rounded-xl font-semibold transition-all duration-200 shadow-lg shadow-green-500/25 hover:shadow-green-500/40 hover:scale-[1.02] active:scale-[0.98]">
+                    Create Free Account
+                  </button>
+                  <button onClick={() => setActiveTab('prices')}
+                    className="text-gray-400 hover:text-white px-6 py-2.5 rounded-xl font-medium transition border border-gray-700 hover:border-gray-600">
+                    Browse Prices First
+                  </button>
+                </div>
               </div>
             ) : watchlistItems.length === 0 ? (
-              <div className="bg-gray-900 rounded-2xl p-6 sm:p-8 text-center border border-gray-800">
-                <StarOff size={48} className="text-gray-600 mx-auto mb-4" />
-                <h3 className="text-lg sm:text-xl font-semibold mb-2">No Items in Watchlist</h3>
-                <p className="text-gray-400 mb-4 text-sm sm:text-base">
-                  Start tracking commodities by clicking the star icon on any price.
+              <div className="bg-gray-900 rounded-2xl p-8 sm:p-12 text-center border border-gray-800">
+                <div className="relative w-20 h-20 mx-auto mb-6">
+                  <div className="absolute inset-0 bg-gray-800 rounded-full" />
+                  <div className="absolute inset-2 bg-gray-850 rounded-full flex items-center justify-center">
+                    <StarOff className="text-gray-500" size={32} />
+                  </div>
+                </div>
+                <h3 className="text-xl sm:text-2xl font-bold mb-2">Your Watchlist is Empty</h3>
+                <p className="text-gray-400 mb-2 text-sm sm:text-base max-w-md mx-auto">
+                  Start tracking commodities by clicking the <Star size={14} className="inline text-yellow-400" fill="currentColor" /> star icon on any commodity.
                 </p>
+                <p className="text-gray-500 text-xs mb-6">You'll see price changes and trends here at a glance.</p>
                 <button onClick={() => setActiveTab('prices')}
-                  className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg font-medium">
-                  Browse Prices
+                  className="bg-green-500 hover:bg-green-600 text-white px-6 py-2.5 rounded-xl font-semibold transition-all duration-200 shadow-lg shadow-green-500/25 hover:scale-[1.02] active:scale-[0.98]">
+                  Browse Commodities
                 </button>
               </div>
             ) : (
               <div className="grid sm:grid-cols-2 gap-4 sm:gap-6">
                 {watchlistItems.map((item) => (
-                  <div key={item.commodity.id} className="bg-gray-900 rounded-2xl p-4 sm:p-6 border border-gray-800">
+                  <div key={item.commodity.id} className="bg-gray-900 rounded-2xl p-4 sm:p-6 border border-gray-800 hover:border-gray-700 transition-all duration-200 group">
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center gap-3 min-w-0">
-                        <span className="text-2xl sm:text-3xl">{getCommodityIcon(item.commodity)}</span>
+                        <span className="text-2xl sm:text-3xl group-hover:scale-110 transition-transform duration-200">{getCommodityIcon(item.commodity)}</span>
                         <div className="min-w-0">
                           <h3 className="font-bold text-base sm:text-lg truncate">{item.commodity.name}</h3>
                           <p className="text-gray-400 text-xs sm:text-sm">{item.commodity.unit}</p>
                         </div>
                       </div>
                       <button onClick={() => toggleWatchlist(item.commodity.id)}
-                        className="text-yellow-400 hover:text-yellow-300 flex-shrink-0 ml-2">
+                        className="text-yellow-400 hover:text-yellow-300 hover:scale-110 transition-all flex-shrink-0 ml-2">
                         <Star fill="currentColor" />
                       </button>
                     </div>
+                    {/* Sparkline */}
+                    {item.sparkline?.length >= 2 && (
+                      <div className="mb-3 bg-gray-800/50 rounded-lg p-2">
+                        <Sparkline data={item.sparkline} color={item.change >= 0 ? '#22c55e' : '#ef4444'} width={260} height={32} />
+                      </div>
+                    )}
                     <div className="grid grid-cols-2 gap-3 sm:gap-4">
                       <div className="bg-gray-800 rounded-xl p-3">
                         <p className="text-gray-400 text-xs sm:text-sm">Avg Price</p>
@@ -1165,8 +1233,8 @@ function PriceNijaApp() {
                     </div>
                     <button
                       onClick={() => { setSelectedCommodity(item.commodity); setActiveTab('prices'); }}
-                      className="w-full mt-4 py-2 text-green-400 hover:bg-green-500/10 rounded-lg font-medium flex items-center justify-center gap-2 text-sm sm:text-base">
-                      View Details <ChevronRight size={18} />
+                      className="w-full mt-4 py-2 text-green-400 hover:bg-green-500/10 rounded-xl font-medium flex items-center justify-center gap-2 text-sm sm:text-base transition group">
+                      View Details <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
                     </button>
                   </div>
                 ))}
@@ -1261,8 +1329,6 @@ function PriceNijaApp() {
 
       {/* Mobile Bottom Navigation */}
       <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
-      {/* Bottom padding for mobile bottom nav */}
-      <div className="h-16 md:hidden" />
     </div>
   );
 }
