@@ -18,14 +18,11 @@ import NotificationDropdown from './components/NotificationDropdown';
 import BottomNav from './components/BottomNav';
 import { ToastProvider, useToast } from './components/Toast';
 
-// Lazy-load Recharts (~50KB) - only loaded when price chart is visible
-const LazyAreaChart = dynamic(() => import('recharts').then(mod => mod.AreaChart), { ssr: false });
-const LazyArea = dynamic(() => import('recharts').then(mod => mod.Area), { ssr: false });
-const LazyXAxis = dynamic(() => import('recharts').then(mod => mod.XAxis), { ssr: false });
-const LazyYAxis = dynamic(() => import('recharts').then(mod => mod.YAxis), { ssr: false });
-const LazyCartesianGrid = dynamic(() => import('recharts').then(mod => mod.CartesianGrid), { ssr: false });
-const LazyTooltip = dynamic(() => import('recharts').then(mod => mod.Tooltip), { ssr: false });
-const LazyResponsiveContainer = dynamic(() => import('recharts').then(mod => mod.ResponsiveContainer), { ssr: false });
+// Lazy-load entire PriceChart component (~50KB recharts bundle deferred)
+const PriceChart = dynamic(() => import('./components/PriceChart'), {
+  ssr: false,
+  loading: () => <div className="h-[200px] sm:h-[250px] flex items-center justify-center text-gray-500"><Loader2 className="animate-spin" /></div>,
+});
 
 export default function PriceNija() {
   return (
@@ -1004,24 +1001,10 @@ function PriceNijaApp() {
                     </div>
 
                     {priceHistory[`${selectedCommodity.id}-${selectedPeriod}`]?.length > 0 ? (
-                      <LazyResponsiveContainer width="100%" height={200} className="sm:h-[250px]">
-                        <LazyAreaChart data={priceHistory[`${selectedCommodity.id}-${selectedPeriod}`]}>
-                          <defs>
-                            <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="#22c55e" stopOpacity={0.3}/>
-                              <stop offset="95%" stopColor="#22c55e" stopOpacity={0}/>
-                            </linearGradient>
-                          </defs>
-                          <LazyCartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                          <LazyXAxis dataKey="date" stroke="#9ca3af" fontSize={10} />
-                          <LazyYAxis stroke="#9ca3af" fontSize={10} tickFormatter={(val) => '₦' + (val/1000) + 'K'} />
-                          <LazyTooltip
-                            contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px' }}
-                            formatter={(value) => [formatPrice(value), 'Price']}
-                          />
-                          <LazyArea type="monotone" dataKey="price" stroke="#22c55e" strokeWidth={2} fillOpacity={1} fill="url(#colorPrice)" />
-                        </LazyAreaChart>
-                      </LazyResponsiveContainer>
+                      <PriceChart
+                        data={priceHistory[`${selectedCommodity.id}-${selectedPeriod}`]}
+                        formatPrice={formatPrice}
+                      />
                     ) : (
                       <div className="h-[200px] sm:h-[250px] flex items-center justify-center text-gray-500">
                         {priceHistory[`${selectedCommodity.id}-${selectedPeriod}`] === undefined
