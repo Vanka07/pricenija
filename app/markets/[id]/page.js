@@ -8,7 +8,6 @@ import { supabase } from '../../../lib/supabase';
 
 export default function MarketDetailPage() {
     const params = useParams();
-    const router = useRouter();
     const [market, setMarket] = useState(null);
     const [prices, setPrices] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -143,7 +142,7 @@ export default function MarketDetailPage() {
         </h2>
           <div className="flex items-center text-gray-400 text-sm">
                     <Clock className="w-4 h-4 mr-1" />
-                    Last updated: {new Date().toLocaleDateString()}
+                    Last updated: {prices.length > 0 ? new Date(prices[0].date).toLocaleDateString('en-NG', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}
 </div>
   </div>
 

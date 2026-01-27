@@ -583,10 +583,14 @@ export default function PriceNija() {
           background-color: rgb(38, 42, 51);
         }
       `}</style>
+      {/* Skip to content link for keyboard/screen reader users */}
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:bg-green-500 focus:text-white focus:px-4 focus:py-2 focus:rounded-lg">
+        Skip to main content
+      </a>
       <AuthModal />
 
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-gray-950/95 backdrop-blur border-b border-gray-800">
+      <header className="sticky top-0 z-40 bg-gray-950/95 backdrop-blur border-b border-gray-800" role="banner">
         <div className="max-w-7xl mx-auto px-3 sm:px-4">
           <div className="flex items-center justify-between h-14 sm:h-16">
             {/* Logo - Clickable to go home */}
@@ -603,7 +607,7 @@ export default function PriceNija() {
             </button>
 
             {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center gap-1">
+            <nav className="hidden md:flex items-center gap-1" aria-label="Main navigation">
               {['dashboard', 'prices', 'markets', 'watchlist'].map((tab) => (
                 <button key={tab} onClick={() => setActiveTab(tab)}
                   className={`px-3 lg:px-4 py-2 rounded-lg font-medium transition capitalize flex items-center gap-2
@@ -701,7 +705,7 @@ export default function PriceNija() {
         </div>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+      <main id="main-content" className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6" role="main">
 
         {/* Dashboard Tab */}
         {activeTab === 'dashboard' && (
@@ -763,6 +767,7 @@ export default function PriceNija() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onFocus={() => setActiveTab('prices')}
+                aria-label="Search commodities"
                 className="w-full bg-gray-900 border border-gray-700 rounded-xl pl-12 pr-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 text-sm sm:text-base transition"
               />
             </div>
@@ -1013,6 +1018,7 @@ export default function PriceNija() {
                 <input
                   type="text" placeholder="Search commodities..."
                   value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+                  aria-label="Search commodities"
                   className="w-full bg-gray-900 border border-gray-700 rounded-xl pl-10 pr-4 py-3 text-white focus:outline-none focus:border-green-500 text-sm sm:text-base"
                 />
               </div>
@@ -1333,7 +1339,7 @@ export default function PriceNija() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-gray-900 border-t border-gray-800 mt-8 sm:mt-12">
+      <footer className="bg-gray-900 border-t border-gray-800 mt-8 sm:mt-12" role="contentinfo">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 py-8 sm:py-12">
           {/* Main Footer Content */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
@@ -1376,10 +1382,9 @@ export default function PriceNija() {
               <h4 className="font-semibold text-white mb-4">Resources</h4>
               <ul className="space-y-2 text-sm">
                 <li><Link href="/about" className="text-gray-400 hover:text-green-400 transition">About Us</Link></li>
-                <li><a href="#" className="text-gray-400 hover:text-green-400 transition">Market Reports</a></li>
-                <li><a href="#" className="text-gray-400 hover:text-green-400 transition">Price Alerts</a></li>
-                <li><a href="#" className="text-gray-400 hover:text-green-400 transition">API Access</a></li>
-                <li><a href="#" className="text-gray-400 hover:text-green-400 transition">Help Center</a></li>
+                <li><Link href="/about#faq" className="text-gray-400 hover:text-green-400 transition">FAQ</Link></li>
+                <li><Link href="/about#how-it-works" className="text-gray-400 hover:text-green-400 transition">How It Works</Link></li>
+                <li><Link href="/about#contact" className="text-gray-400 hover:text-green-400 transition">Contact</Link></li>
               </ul>
             </div>
 
@@ -1395,8 +1400,8 @@ export default function PriceNija() {
               </ul>
               <h4 className="font-semibold text-white mb-3 mt-6">Legal</h4>
               <ul className="space-y-2 text-sm">
-                <li><a href="#" className="text-gray-400 hover:text-green-400 transition flex items-center gap-2"><Shield size={14} /> Privacy Policy</a></li>
-                <li><a href="#" className="text-gray-400 hover:text-green-400 transition flex items-center gap-2"><FileText size={14} /> Terms of Service</a></li>
+                <li><span className="text-gray-500 flex items-center gap-2"><Shield size={14} /> Privacy Policy</span></li>
+                <li><span className="text-gray-500 flex items-center gap-2"><FileText size={14} /> Terms of Service</span></li>
               </ul>
             </div>
           </div>

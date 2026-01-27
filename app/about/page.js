@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
     ArrowLeft, TrendingUp, MapPin, Bell, Shield, Users,
@@ -20,6 +20,22 @@ const Logo = ({ size = 'md' }) => {
 
 export default function AboutPage() {
     const [activeSection, setActiveSection] = useState('about');
+
+  // Sync activeSection with scroll position so the nav tabs highlight correctly
+  useEffect(() => {
+    const sectionIds = ['contact', 'faq', 'how-it-works', 'about'];
+    const handleScroll = () => {
+      for (const id of sectionIds) {
+        const el = document.getElementById(id);
+        if (el && el.getBoundingClientRect().top <= 150) {
+          setActiveSection(id);
+          break;
+        }
+      }
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const features = [
     {
