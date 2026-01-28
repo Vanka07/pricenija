@@ -27,18 +27,19 @@ const Logo = ({ size = 'md' }) => {
         >
           ₦
         </text>
+        {/* Uptrend arrow matching reference logo style, in yellow */}
         <path
-          d="M8 34 L16 30 L24 32 L32 26"
+          d="M7 32 L15 22 L20 26 L29 12"
           stroke="#FBBF24"
-          strokeWidth="2.5"
+          strokeWidth="3"
           fill="none"
           strokeLinecap="round"
           strokeLinejoin="round"
         />
         <path
-          d="M30 28 L32 26 L30 24"
+          d="M23 12 L29 12 L29 18"
           stroke="#FBBF24"
-          strokeWidth="2"
+          strokeWidth="3"
           fill="none"
           strokeLinecap="round"
           strokeLinejoin="round"
