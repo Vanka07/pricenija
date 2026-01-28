@@ -472,7 +472,7 @@ function PriceNijaApp() {
               <div className="sm:hidden"><Logo size="sm" /></div>
               <div>
                 <span className="text-lg sm:text-xl font-bold">Price<span className="text-green-400">Nija</span></span>
-                <span className="hidden sm:inline text-xs text-gray-500 ml-2">MARKET INTELLIGENCE</span>
+                <span className="hidden sm:inline text-xs text-gray-500 ml-2">Track • Compare • Save</span>
               </div>
             </button>
 
