@@ -18,27 +18,28 @@ const Logo = ({ size = 'md' }) => {
       <svg viewBox="0 0 40 40" className={svgSizes[size]}>
         <text
           x="20"
-          y="21"
+          y="26"
           textAnchor="middle"
           fill="white"
-          fontSize="17"
+          fontSize="24"
           fontWeight="bold"
           fontFamily="system-ui"
         >
           ₦
         </text>
+        {/* Uptrend arrow matching reference logo style, in yellow */}
         <path
-          d="M8 32 L16 28 L24 30 L32 24"
+          d="M7 32 L15 22 L20 26 L29 12"
           stroke="#FBBF24"
-          strokeWidth="2.5"
+          strokeWidth="3"
           fill="none"
           strokeLinecap="round"
           strokeLinejoin="round"
         />
         <path
-          d="M30 26 L32 24 L30 22"
+          d="M23 12 L29 12 L29 18"
           stroke="#FBBF24"
-          strokeWidth="2"
+          strokeWidth="3"
           fill="none"
           strokeLinecap="round"
           strokeLinejoin="round"
