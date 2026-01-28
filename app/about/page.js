@@ -136,7 +136,7 @@ export default function AboutPage() {
                       Track Agricultural Prices <span className="text-green-400">Across Nigeria</span>
           </h1>
             <p className="text-gray-400 text-lg sm:text-xl max-w-3xl mx-auto mb-8">
-                      PriceNija helps farmers, traders, and consumers make smarter buying decisions
+                      Helping farmers, traders, and consumers make smarter buying decisions
               by providing real-time commodity price data from Nigeria&apos;s top markets.
                 </p>
             <div className="flex flex-wrap justify-center gap-4">
