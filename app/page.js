@@ -276,11 +276,26 @@ function PriceNijaApp() {
           .sort((a, b) => a.date.localeCompare(b.date))
           .map(d => Math.round(d.prices.reduce((s, v) => s + v, 0) / d.prices.length));
 
+        // Find the market with the biggest price change for this commodity
+        let bestChangeMarket = null;
+        let bestChangeAbs = 0;
+        commodityLatest.forEach(lp => {
+          const prevEntry = commodityPrevious.find(pp => pp.market_id === lp.market_id);
+          if (prevEntry && prevEntry.price > 0) {
+            const mktChange = Math.abs((lp.price - prevEntry.price) / prevEntry.price * 100);
+            if (mktChange > bestChangeAbs) {
+              bestChangeAbs = mktChange;
+              bestChangeMarket = lp.market;
+            }
+          }
+        });
+
         commodityPrices[commodity.id] = {
           commodity, avgPrice, change: parseFloat(change.toFixed(1)),
           lowestPrice, highestPrice,
           lowestMarket: commodityLatest.find(p => p.price === lowestPrice)?.market,
           highestMarket: commodityLatest.find(p => p.price === highestPrice)?.market,
+          bestChangeMarket,
           priceSpread: highestPrice - lowestPrice,
           marketPrices: commodityLatest,
           sparkline,
@@ -639,7 +654,7 @@ function PriceNijaApp() {
                     </div>
                   </div>
                   {/* Quick Stats */}
-                  <div className="flex gap-6 md:gap-4 md:flex-col">
+                  <div className="flex gap-4 sm:gap-6 md:gap-4 md:flex-col">
                     {[
                       { value: commodities.length + '+', label: 'Commodities', color: 'text-green-400', delay: '0.1s' },
                       { value: markets.length + '+', label: 'Markets', color: 'text-blue-400', delay: '0.2s' },
@@ -784,7 +799,7 @@ function PriceNijaApp() {
                             <span className="text-xl sm:text-2xl group-hover:scale-110 transition-transform duration-200">{getCommodityIcon(item.commodity)}</span>
                             <div className="min-w-0">
                               <p className="font-medium text-sm sm:text-base truncate group-hover:text-green-300 transition-colors">{item.commodity.name}</p>
-                              <p className="text-xs text-gray-400 truncate">{item.lowestMarket?.name || 'N/A'}</p>
+                              <p className="text-xs text-gray-400 truncate">{item.bestChangeMarket?.name || item.lowestMarket?.name || 'N/A'}</p>
                             </div>
                           </div>
                           <div className="flex items-center gap-2 flex-shrink-0 ml-2">
@@ -823,7 +838,7 @@ function PriceNijaApp() {
                             <span className="text-xl sm:text-2xl group-hover:scale-110 transition-transform duration-200">{getCommodityIcon(item.commodity)}</span>
                             <div className="min-w-0">
                               <p className="font-medium text-sm sm:text-base truncate group-hover:text-red-300 transition-colors">{item.commodity.name}</p>
-                              <p className="text-xs text-gray-400 truncate">{item.lowestMarket?.name || 'N/A'}</p>
+                              <p className="text-xs text-gray-400 truncate">{item.bestChangeMarket?.name || item.lowestMarket?.name || 'N/A'}</p>
                             </div>
                           </div>
                           <div className="flex items-center gap-2 flex-shrink-0 ml-2">
@@ -922,7 +937,7 @@ function PriceNijaApp() {
                   type="text" placeholder="Search commodities..."
                   value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
                   aria-label="Search commodities"
-                  className="w-full bg-gray-900 border border-gray-700 rounded-xl pl-10 pr-4 py-3 text-white focus:outline-none focus:border-green-500 text-sm sm:text-base"
+                  className="w-full bg-gray-800 border border-gray-600 rounded-xl pl-10 pr-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 text-sm sm:text-base transition"
                 />
               </div>
 
@@ -936,7 +951,7 @@ function PriceNijaApp() {
                 ))}
               </div>
 
-              <div className="space-y-2 max-h-[400px] sm:max-h-[600px] overflow-y-auto pr-1 sm:pr-2">
+              <div className="space-y-2 max-h-[280px] sm:max-h-[400px] lg:max-h-[600px] overflow-y-auto pr-1 sm:pr-2">
                 {filteredCommodities.filter((commodity) => getPriceData.commodityPrices[commodity.id]).map((commodity) => {
                   const priceData = getPriceData.commodityPrices[commodity.id];
                   return (
@@ -1264,7 +1279,7 @@ function PriceNijaApp() {
       <footer className="bg-gray-900 border-t border-gray-800 mt-8 sm:mt-12" role="contentinfo">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 py-8 sm:py-12">
           {/* Main Footer Content */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 mb-8">
             {/* Brand Column */}
             <div className="md:col-span-1">
               <div className="flex items-center gap-2 mb-4">
