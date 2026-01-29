@@ -50,8 +50,8 @@ export default function AboutPage() {
     },
     {
             icon: <MapPin className="text-blue-400" size={28} />,
-            title: '5+ Major Markets',
-            description: 'Compare prices across Dawanau, Mile 12, Bodija, Wuse, and other top Nigerian commodity markets.'
+            title: '8+ Major Markets',
+            description: 'Compare prices across Dawanau, Mile 12, Bodija, Wuse, Saminaka, Minna, Ogbete, Wurukum, and other top Nigerian commodity markets.'
     },
     {
             icon: <Bell className="text-yellow-400" size={28} />,
@@ -95,7 +95,7 @@ export default function AboutPage() {
     },
     {
             question: 'Which markets do you cover?',
-            answer: 'We currently cover major Nigerian markets including Dawanau (Kano), Mile 12 (Lagos), Bodija (Ibadan), Wuse (Abuja), and Ogbete Main (Enugu).'
+            answer: 'We currently cover 8 major Nigerian markets: Bodija (Ibadan), Dawanau (Kano), Mile 12 (Lagos), Minna Grain Market (Minna), Ogbete Main (Enugu), Saminaka (Kaduna), Wurukum Market (Makurdi), and Wuse (Abuja).'
     },
     {
             question: 'Is PriceNija free to use?',
@@ -199,7 +199,7 @@ export default function AboutPage() {
           <div className="mt-12 grid grid-cols-2 sm:grid-cols-4 gap-6">
           {[
           { value: '18+', label: 'Commodities' },
-          { value: '5+', label: 'Markets' },
+          { value: '8+', label: 'Markets' },
           { value: 'Live', label: 'Price Updates' },
           { value: 'Free', label: 'To Use' }
                         ].map((stat, index) => (

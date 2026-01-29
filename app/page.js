@@ -290,13 +290,29 @@ function PriceNijaApp() {
 
     const marketPrices = {};
     markets.forEach(market => {
-      const marketLatest = Object.values(latestPrices).filter(p => p.market_id === market.id);
-      if (marketLatest.length > 0) {
-        const avgChange = marketLatest.reduce((sum, p) => {
-          const yPrice = previousPrices[`${p.commodity_id}-${market.id}`]?.price || p.price;
+      // Find per-commodity latest and previous prices for this market
+      const marketCommodityLatest = {};
+      const marketCommodityPrevious = {};
+
+      prices
+        .filter(p => p.market_id === market.id)
+        .sort((a, b) => b.date.localeCompare(a.date))
+        .forEach(p => {
+          if (!marketCommodityLatest[p.commodity_id]) {
+            marketCommodityLatest[p.commodity_id] = p;
+          } else if (!marketCommodityPrevious[p.commodity_id]) {
+            marketCommodityPrevious[p.commodity_id] = p;
+          }
+        });
+
+      const latestEntries = Object.values(marketCommodityLatest);
+      if (latestEntries.length > 0) {
+        const avgChange = latestEntries.reduce((sum, p) => {
+          const prev = marketCommodityPrevious[p.commodity_id];
+          const yPrice = prev?.price || p.price;
           return sum + (yPrice > 0 ? ((p.price - yPrice) / yPrice * 100) : 0);
-        }, 0) / marketLatest.length;
-        marketPrices[market.id] = { market, avgChange: parseFloat(avgChange.toFixed(1)), priceCount: marketLatest.length };
+        }, 0) / latestEntries.length;
+        marketPrices[market.id] = { market, avgChange: parseFloat(avgChange.toFixed(1)), priceCount: latestEntries.length };
       }
     });
 
@@ -921,7 +937,7 @@ function PriceNijaApp() {
               </div>
 
               <div className="space-y-2 max-h-[400px] sm:max-h-[600px] overflow-y-auto pr-1 sm:pr-2">
-                {filteredCommodities.map((commodity) => {
+                {filteredCommodities.filter((commodity) => getPriceData.commodityPrices[commodity.id]).map((commodity) => {
                   const priceData = getPriceData.commodityPrices[commodity.id];
                   return (
                     <button
