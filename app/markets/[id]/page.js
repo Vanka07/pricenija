@@ -52,8 +52,12 @@ export default function MarketDetailPage() {
           .order('date', { ascending: false })
           .limit(5000);
 
-        if (!allPricesError && allPrices) {
-          setAllMarketPrices(allPrices);
+        if (allPricesError) {
+          console.error('Cross-market fetch error:', allPricesError);
+        } else {
+          const uniqueMarkets = [...new Set((allPrices || []).map(p => p.market_id))];
+          console.log(`Cross-market data: ${allPrices?.length} prices across ${uniqueMarkets.length} markets`, uniqueMarkets);
+          setAllMarketPrices(allPrices || []);
         }
       } catch (err) {
         setError(err.message);
