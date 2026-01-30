@@ -40,13 +40,17 @@ export default function MarketDetailPage() {
         setPrices(pricesData || []);
 
         // Fetch ALL latest prices across ALL markets for comparison
-        const sevenDaysAgo = new Date();
-        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        // Use a 30-day window to ensure we capture all markets even if they report on different days
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+        // Supabase defaults to 1000 rows; explicitly request more to avoid silent truncation
         const { data: allPrices, error: allPricesError } = await supabase
           .from('prices')
           .select('*, market:markets(id, name, city, state)')
-          .gte('date', sevenDaysAgo.toISOString().split('T')[0])
-          .order('date', { ascending: false });
+          .gte('date', thirtyDaysAgo.toISOString().split('T')[0])
+          .order('date', { ascending: false })
+          .limit(5000);
 
         if (!allPricesError && allPrices) {
           setAllMarketPrices(allPrices);
@@ -88,15 +92,13 @@ export default function MarketDetailPage() {
   const crossMarketData = useMemo(() => {
     if (!allMarketPrices.length) return {};
 
-    // Find the latest date across all markets
-    const sortedDates = [...new Set(allMarketPrices.map(p => p.date))].sort().reverse();
-    const latestDate = sortedDates[0];
-
-    // Get latest prices per commodity per market
+    // Get the LATEST price per commodity per market (not just one global date)
+    // Markets may report on different days, so we pick each market's most recent entry
     const latestByKey = {};
     allMarketPrices.forEach(p => {
-      if (p.date === latestDate) {
-        latestByKey[`${p.commodity_id}-${p.market_id}`] = p;
+      const key = `${p.commodity_id}-${p.market_id}`;
+      if (!latestByKey[key] || p.date > latestByKey[key].date) {
+        latestByKey[key] = p;
       }
     });
 
