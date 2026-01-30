@@ -153,12 +153,13 @@ function PriceNijaApp() {
       if (commoditiesError) throw commoditiesError;
       setCommodities(commoditiesData || []);
 
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       const { data: pricesData, error: pricesError } = await supabase
         .from('prices').select('*, commodity:commodities(*), market:markets(*)')
-        .gte('date', sevenDaysAgo.toISOString().split('T')[0])
-        .order('date', { ascending: false });
+        .gte('date', thirtyDaysAgo.toISOString().split('T')[0])
+        .order('date', { ascending: false })
+        .limit(5000);
       if (pricesError) throw pricesError;
       setPrices(pricesData || []);
       setLastUpdated(new Date());
@@ -232,19 +233,16 @@ function PriceNijaApp() {
     if (!prices.length || !commodities.length || !markets.length)
       return { commodityPrices: {}, marketPrices: {} };
 
-    // Get unique dates from database and sort them (most recent first)
-    const sortedDates = [...new Set(prices.map(p => p.date))].sort().reverse();
-    const latestDate = sortedDates[0]; // Most recent date in database
-    const previousDate = sortedDates[1] || sortedDates[0]; // Second most recent (or same if only one date)
-
+    // Get each market's MOST RECENT price per commodity (markets may report on different days)
     const latestPrices = {}, previousPrices = {};
 
-    prices.forEach(p => {
+    // Sort all prices by date descending so we encounter newest first
+    const sorted = [...prices].sort((a, b) => b.date.localeCompare(a.date));
+    sorted.forEach(p => {
       const key = `${p.commodity_id}-${p.market_id}`;
-      if (p.date === latestDate) {
+      if (!latestPrices[key]) {
         latestPrices[key] = p;
-      }
-      if (p.date === previousDate) {
+      } else if (!previousPrices[key]) {
         previousPrices[key] = p;
       }
     });
