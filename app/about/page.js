@@ -276,18 +276,18 @@ export default function AboutPage() {
                 <div className="pt-4 border-t border-gray-800">
                             <p className="text-gray-500 text-sm mb-3">Follow us</p>
                   <div className="flex gap-3">
-                              <a href="https://twitter.com/pricenija" target="_blank" rel="noopener noreferrer"
-                                className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700 transition" aria-label="Twitter">
+                              <span
+                                className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center text-gray-500 cursor-default" aria-label="Twitter">
                                 <Twitter size={20} />
-          </a>
-                    <a href="https://facebook.com/pricenija" target="_blank" rel="noopener noreferrer"
-                      className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700 transition" aria-label="Facebook">
+          </span>
+                    <span
+                      className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center text-gray-500 cursor-default" aria-label="Facebook">
                                 <Facebook size={20} />
-          </a>
-                    <a href="https://instagram.com/pricenija" target="_blank" rel="noopener noreferrer"
-                      className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700 transition" aria-label="Instagram">
+          </span>
+                    <span
+                      className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center text-gray-500 cursor-default" aria-label="Instagram">
                                 <Instagram size={20} />
-          </a>
+          </span>
           </div>
           </div>
           </div>
