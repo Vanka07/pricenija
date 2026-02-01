@@ -1,0 +1,17 @@
+{
+  "name": "pricenija-scraper",
+  "version": "1.0.0",
+  "description": "Nigerian commodity price scraper for PriceNija",
+  "type": "module",
+  "scripts": {
+    "scrape": "node run-scraper.js",
+    "scrape:marketnaija": "node run-scraper.js --source=marketnaija",
+    "scrape:pluckagro": "node run-scraper.js --source=pluckagro",
+    "scrape:dry": "node run-scraper.js --dry-run"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "cheerio": "^1.0.0-rc.12",
+    "node-fetch": "^3.3.2"
+  }
+}
