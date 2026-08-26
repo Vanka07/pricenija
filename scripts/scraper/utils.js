@@ -170,6 +170,81 @@ export function today() {
 }
 
 /**
+ * Normalize a date-like string to YYYY-MM-DD, or null.
+ */
+export function toIsoDate(value) {
+  if (!value) return null;
+  const isoMatch = String(value).match(/(\d{4}-\d{2}-\d{2})/);
+  if (isoMatch) return isoMatch[1];
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed.toISOString().split('T')[0];
+}
+
+/**
+ * Extract a real source date from HTML, HTTP headers, or prose.
+ * Never invents today's date — returns null if nothing trustworthy is found.
+ */
+export function extractSourceDate(html, headers) {
+  const markup = html || '';
+  const patterns = [
+    /property=["']article:modified_time["'][^>]*content=["']([^"']+)["']/i,
+    /content=["']([^"']+)["'][^>]*property=["']article:modified_time["']/i,
+    /property=["']og:updated_time["'][^>]*content=["']([^"']+)["']/i,
+    /property=["']article:published_time["'][^>]*content=["']([^"']+)["']/i,
+    /content=["']([^"']+)["'][^>]*property=["']article:published_time["']/i,
+    /name=["']last-modified["'][^>]*content=["']([^"']+)["']/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = markup.match(pattern);
+    const date = toIsoDate(match?.[1]);
+    if (date) return date;
+  }
+
+  const prose = markup.match(
+    /\b((?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},\s+20\d{2})\b/i
+  );
+  const proseDate = toIsoDate(prose?.[1]);
+  if (proseDate) return proseDate;
+
+  const cacheStamp = markup.match(
+    /Page cached by LiteSpeed Cache[^>]*on\s+(\d{4}-\d{2}-\d{2})/i
+  );
+  const cacheDate = toIsoDate(cacheStamp?.[1]);
+  if (cacheDate) return cacheDate;
+
+  const lastModified = headers?.get?.('last-modified') || headers?.get?.('Last-Modified');
+  return toIsoDate(lastModified);
+}
+
+const DEFAULT_HEADERS = {
+  'User-Agent': 'PriceNija-Scraper/1.0 (+https://www.pricenija.com; commodity price aggregator)',
+  Accept: 'text/html,application/xhtml+xml',
+};
+
+/**
+ * fetch() with timeout and a polite User-Agent.
+ */
+export async function fetchPage(url, options = {}) {
+  const timeoutMs = options.timeoutMs ?? 20000;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, {
+      ...options,
+      signal: controller.signal,
+      headers: {
+        ...DEFAULT_HEADERS,
+        ...(options.headers || {}),
+      },
+    });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
  * Logger with timestamp
  */
 export const log = {

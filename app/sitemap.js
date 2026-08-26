@@ -1,4 +1,4 @@
-import { createBrowserClient } from '@supabase/ssr';
+import { createClient } from '@supabase/supabase-js';
 
 export default async function sitemap() {
   const baseUrl = 'https://www.pricenija.com';
@@ -41,10 +41,12 @@ export default async function sitemap() {
   // Dynamic market pages
   let marketPages = [];
   try {
-    const supabase = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-    );
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (!supabaseUrl || !supabaseAnonKey) {
+      return [...staticPages];
+    }
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
     const { data: markets } = await supabase
       .from('markets')
       .select('id, name')
