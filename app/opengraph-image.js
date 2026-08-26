@@ -62,7 +62,7 @@ export default function Image() {
             lineHeight: 1.4,
           }}
         >
-          Track real-time agricultural commodity prices across Nigeria&apos;s top markets
+          Commodity prices as of the newest stored date across Nigeria&apos;s top markets
         </p>
         <div
           style={{
@@ -72,16 +72,16 @@ export default function Image() {
           }}
         >
           <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <span style={{ fontSize: '36px', fontWeight: 'bold', color: '#4ade80' }}>18+</span>
+            <span style={{ fontSize: '36px', fontWeight: 'bold', color: '#4ade80' }}>18</span>
             <span style={{ fontSize: '16px', color: '#6b7280' }}>Commodities</span>
           </div>
           <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <span style={{ fontSize: '36px', fontWeight: 'bold', color: '#60a5fa' }}>5+</span>
+            <span style={{ fontSize: '36px', fontWeight: 'bold', color: '#60a5fa' }}>8</span>
             <span style={{ fontSize: '16px', color: '#6b7280' }}>Markets</span>
           </div>
           <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <span style={{ fontSize: '36px', fontWeight: 'bold', color: '#fbbf24' }}>Live</span>
-            <span style={{ fontSize: '16px', color: '#6b7280' }}>Updates</span>
+            <span style={{ fontSize: '36px', fontWeight: 'bold', color: '#fbbf24' }}>As of</span>
+            <span style={{ fontSize: '16px', color: '#6b7280' }}>Newest stored date</span>
           </div>
         </div>
       </div>

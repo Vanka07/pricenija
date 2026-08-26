@@ -19,7 +19,7 @@ export default function DataFreshness({ lastUpdated }) {
     <span className="flex items-center gap-1">
       <span className={`w-2 h-2 rounded-full ${stale ? 'bg-yellow-500' : 'bg-green-500 animate-pulse'}`} />
       <span className={stale ? 'text-yellow-400' : 'text-green-400'}>
-        {stale ? 'Latest on record' : 'Live'}
+        Latest on record
       </span>
       {asOf && <span className="text-gray-500">As of {asOf}</span>}
     </span>

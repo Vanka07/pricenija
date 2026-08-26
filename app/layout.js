@@ -11,7 +11,7 @@ export const metadata = {
         default: 'PriceNija - Nigerian Commodity Market Price Tracker',
         template: '%s | PriceNija',
       },
-      description: 'Track real-time prices for grains, vegetables, tubers, and commodities across Nigeria\'s top markets. Compare prices, find the best deals, and make informed buying decisions.',
+      description: 'Compare grain, vegetable, tuber, and commodity prices as of the newest stored date across Nigeria\'s top markets. Find the best deals and make informed buying decisions.',
       keywords: 'Nigeria commodity prices, food prices Nigeria, market prices, grain prices, rice prices Nigeria, maize prices, agricultural prices, Dawanau market, Mile 12 market, Bodija market',
       authors: [{ name: 'PriceNija' }],
       creator: 'PriceNija',
@@ -35,14 +35,14 @@ export const metadata = {
               url: 'https://www.pricenija.com',
               siteName: 'PriceNija',
               title: 'PriceNija - Nigerian Commodity Market Price Tracker',
-              description: 'Track real-time prices for grains, vegetables, tubers, and commodities across Nigeria\'s top markets. Compare prices and find the best deals.',
+              description: 'Compare grain, vegetable, tuber, and commodity prices as of the newest stored date across Nigeria\'s top markets.',
       },
 
       // Twitter Card
       twitter: {
               card: 'summary_large_image',
               title: 'PriceNija - Nigerian Commodity Market Price Tracker',
-              description: 'Track real-time prices for grains, vegetables, tubers, and commodities across Nigeria\'s top markets.',
+              description: 'Compare commodity prices as of the newest stored date across Nigeria\'s top markets.',
               creator: '@pricenija',
       },
 
@@ -95,7 +95,7 @@ export default function RootLayout({ children }) {
                                                 '@context': 'https://schema.org',
                                                 '@type': 'WebApplication',
                                                 name: 'PriceNija',
-                                                description: 'Track real-time commodity prices across Nigerian markets',
+                                                description: 'Compare commodity prices as of the newest stored date across Nigerian markets',
                                                 url: 'https://www.pricenija.com',
                                                 applicationCategory: 'FinanceApplication',
                                                 operatingSystem: 'Any',

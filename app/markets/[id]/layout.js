@@ -29,7 +29,7 @@ export async function generateMetadata({ params }) {
           `View commodity prices, location details, and price trends for ${market.name} in ${market.city}, ${market.state} on PriceNija.`,
         openGraph: {
           title: `${market.name} Market Prices - PriceNija`,
-          description: `Real-time commodity prices from ${market.name} in ${market.city}, ${market.state}.`,
+          description: `Commodity prices from ${market.name} in ${market.city}, ${market.state}, as of the newest stored date.`,
         },
       };
     }

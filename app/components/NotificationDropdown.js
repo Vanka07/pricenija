@@ -2,22 +2,23 @@
 
 import { Bell, TrendingUp, TrendingDown, BarChart3 } from 'lucide-react';
 
-export default function NotificationDropdown({ show, topGainers = [], topLosers = [] }) {
+export default function NotificationDropdown({ show, topGainers = [], topLosers = [], isLoggedIn = false }) {
   if (!show) return null;
 
   const hasAlerts = topGainers.length > 0 || topLosers.length > 0;
+  const moverCount = topGainers.length + topLosers.length;
 
   return (
     <div
       className="absolute right-0 top-12 w-72 sm:w-80 bg-gray-900 border border-gray-700 rounded-xl shadow-xl z-50"
       role="menu"
-      aria-label="Notifications"
+      aria-label="Price movers"
     >
       <div className="p-4 border-b border-gray-700 flex items-center justify-between">
-        <h3 className="font-semibold text-white">Notifications</h3>
-        {hasAlerts && (
+        <h3 className="font-semibold text-white">Price movers</h3>
+        {isLoggedIn && hasAlerts && (
           <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full">
-            {topGainers.length + topLosers.length} updates
+            {moverCount} {moverCount === 1 ? 'update' : 'updates'}
           </span>
         )}
       </div>
@@ -51,7 +52,7 @@ export default function NotificationDropdown({ show, topGainers = [], topLosers 
           <div className="p-4 text-center text-gray-400 py-6">
             <Bell size={32} className="mx-auto mb-2 opacity-50" />
             <p className="text-sm">No price changes today</p>
-            <p className="text-xs mt-1">Price alerts will appear here</p>
+            <p className="text-xs mt-1">Recent movers will appear here</p>
           </div>
         )}
       </div>

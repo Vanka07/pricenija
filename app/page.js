@@ -375,6 +375,20 @@ function PriceNijaApp() {
       (selectedCategory === 'All' || c.category === selectedCategory)
     ), [commodities, searchQuery, selectedCategory]);
 
+  const visiblePricedCommodities = useMemo(
+    () => filteredCommodities.filter((commodity) => getPriceData.commodityPrices[commodity.id]),
+    [filteredCommodities, getPriceData]
+  );
+
+  useEffect(() => {
+    if (visiblePricedCommodities.length === 0) return;
+    const stillVisible = selectedCommodity
+      && visiblePricedCommodities.some((c) => c.id === selectedCommodity.id);
+    if (!stillVisible) {
+      setSelectedCommodity(visiblePricedCommodities[0]);
+    }
+  }, [visiblePricedCommodities, selectedCommodity]);
+
   const topGainers = useMemo(() =>
     Object.values(getPriceData.commodityPrices)
       .filter(p => p.change > 0)
@@ -519,15 +533,20 @@ function PriceNijaApp() {
               <div className="relative">
                 <button className="relative p-2 min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 hover:text-white"
                   onClick={() => setShowNotifications(!showNotifications)}
-                  aria-label="Notifications">
+                  aria-label="Price movers">
                   <Bell size={20} />
-                  {(topGainers.length > 0 || topLosers.length > 0) && (
+                  {user && (topGainers.length > 0 || topLosers.length > 0) && (
                     <span className="absolute top-1.5 right-1.5 min-w-[16px] h-4 bg-red-500 rounded-full flex items-center justify-center text-[10px] font-bold text-white px-1">
                       {topGainers.length + topLosers.length}
                     </span>
                   )}
                 </button>
-                <NotificationDropdown show={showNotifications} topGainers={topGainers} topLosers={topLosers} />
+                <NotificationDropdown
+                  show={showNotifications}
+                  topGainers={topGainers}
+                  topLosers={topLosers}
+                  isLoggedIn={!!user}
+                />
               </div>
 
               {user ? (
@@ -614,9 +633,7 @@ function PriceNijaApp() {
                     <div className="inline-flex items-center gap-2 bg-green-500/10 border border-green-500/20 rounded-full px-3 py-1 mb-4">
                       <span className={`w-2 h-2 rounded-full ${isPriceDataStale(lastUpdated) ? 'bg-yellow-500' : 'bg-green-500 animate-pulse'}`} />
                       <span className={`${isPriceDataStale(lastUpdated) ? 'text-yellow-400' : 'text-green-400'} text-xs font-medium`}>
-                        {isPriceDataStale(lastUpdated)
-                          ? `Latest on record${formatPriceDate(lastUpdated) ? ` · ${formatPriceDate(lastUpdated)}` : ''}`
-                          : 'Live market data'}
+                        {`Latest on record${formatPriceDate(lastUpdated) ? ` · ${formatPriceDate(lastUpdated)}` : ''}`}
                       </span>
                     </div>
                     <h1 className="text-2xl sm:text-4xl font-bold mb-3 leading-tight">
@@ -624,7 +641,7 @@ function PriceNijaApp() {
                       <span className="text-green-400">Save Money.</span>
                     </h1>
                     <p className="text-gray-300 text-sm sm:text-base mb-5 max-w-lg">
-                      Find the cheapest market for any commodity across Nigeria. Wholesale prices from {markets.length}+ markets.
+                      Find the cheapest market for any commodity across Nigeria. Wholesale prices from {markets.length} markets.
                     </p>
                     <div className="flex flex-wrap gap-3">
                       <button
@@ -644,8 +661,8 @@ function PriceNijaApp() {
                   {/* Quick Stats */}
                   <div className="flex gap-4 sm:gap-6 md:gap-4 md:flex-col">
                     {[
-                      { value: commodities.length + '+', label: 'Commodities', color: 'text-green-400', delay: '0.1s' },
-                      { value: markets.length + '+', label: 'Markets', color: 'text-blue-400', delay: '0.2s' },
+                      { value: String(commodities.length), label: 'Commodities', color: 'text-green-400', delay: '0.1s' },
+                      { value: String(markets.length), label: 'Markets', color: 'text-blue-400', delay: '0.2s' },
                       { value: formatPriceDate(lastUpdated) || '—', label: 'As of', color: 'text-yellow-400', delay: '0.3s' },
                     ].map((stat) => (
                       <div key={stat.label} className="text-center md:text-right animate-fade-in-up" style={{ animationDelay: stat.delay }}>
@@ -674,7 +691,7 @@ function PriceNijaApp() {
 
             <div>
               <h2 className="text-xl sm:text-2xl font-bold mb-1">Market Overview</h2>
-              <p className="text-gray-400 text-sm sm:text-base">Real-time prices across Nigeria&apos;s top markets</p>
+              <p className="text-gray-400 text-sm sm:text-base">Prices as of the newest date on record across Nigeria&apos;s top markets</p>
             </div>
 
             {!hasData ? (
@@ -1012,41 +1029,62 @@ function PriceNijaApp() {
                       </div>
                     </div>
 
-                    {getPriceData.commodityPrices[selectedCommodity.id] && (
+                    {getPriceData.commodityPrices[selectedCommodity.id] && (() => {
+                      const selectedPrice = getPriceData.commodityPrices[selectedCommodity.id];
+                      const marketCount = selectedPrice.marketPrices?.length || 0;
+                      if (marketCount < 2) {
+                        return (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mt-4 sm:mt-6">
+                            <div className="bg-gray-800 rounded-xl p-3 sm:p-4">
+                              <p className="text-gray-400 text-xs sm:text-sm">Price</p>
+                              <p className="text-lg sm:text-xl font-bold mt-1">
+                                {formatPrice(selectedPrice.avgPrice)}
+                              </p>
+                              {selectedPrice.lowestMarket?.name && (
+                                <p className="text-xs text-gray-400 mt-1 truncate">
+                                  @ {selectedPrice.lowestMarket.name}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      }
+                      return (
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mt-4 sm:mt-6">
                         <div className="bg-gray-800 rounded-xl p-3 sm:p-4">
                           <p className="text-gray-400 text-xs sm:text-sm">Average Price</p>
                           <p className="text-lg sm:text-xl font-bold mt-1">
-                            {formatPrice(getPriceData.commodityPrices[selectedCommodity.id].avgPrice)}
+                            {formatPrice(selectedPrice.avgPrice)}
                           </p>
                         </div>
                         <div className="bg-green-900/30 rounded-xl p-3 sm:p-4 border border-green-700">
                           <p className="text-green-400 text-xs sm:text-sm">Lowest Price</p>
                           <p className="text-lg sm:text-xl font-bold mt-1 text-green-400">
-                            {formatPrice(getPriceData.commodityPrices[selectedCommodity.id].lowestPrice)}
+                            {formatPrice(selectedPrice.lowestPrice)}
                           </p>
                           <p className="text-xs text-gray-400 mt-1 truncate">
-                            @ {getPriceData.commodityPrices[selectedCommodity.id].lowestMarket?.name}
+                            @ {selectedPrice.lowestMarket?.name}
                           </p>
                         </div>
                         <div className="bg-red-900/30 rounded-xl p-3 sm:p-4 border border-red-700">
                           <p className="text-red-400 text-xs sm:text-sm">Highest Price</p>
                           <p className="text-lg sm:text-xl font-bold mt-1 text-red-400">
-                            {formatPrice(getPriceData.commodityPrices[selectedCommodity.id].highestPrice)}
+                            {formatPrice(selectedPrice.highestPrice)}
                           </p>
                           <p className="text-xs text-gray-400 mt-1 truncate">
-                            @ {getPriceData.commodityPrices[selectedCommodity.id].highestMarket?.name}
+                            @ {selectedPrice.highestMarket?.name}
                           </p>
                         </div>
                         <div className="bg-gray-800 rounded-xl p-3 sm:p-4">
                           <p className="text-gray-400 text-xs sm:text-sm">Price Spread</p>
                           <p className="text-lg sm:text-xl font-bold mt-1">
-                            {formatPrice(getPriceData.commodityPrices[selectedCommodity.id].priceSpread)}
+                            {formatPrice(selectedPrice.priceSpread)}
                           </p>
                           <p className="text-xs text-gray-400 mt-1">Potential savings</p>
                         </div>
                       </div>
-                    )}
+                      );
+                    })()}
                   </div>
 
                   {/* Price Trend Chart */}
@@ -1088,25 +1126,31 @@ function PriceNijaApp() {
                             <th className="pb-3 pl-4 sm:pl-0">Market</th>
                             <th className="pb-3">Location</th>
                             <th className="pb-3 text-right">Price</th>
-                            <th className="pb-3 text-right pr-4 sm:pr-0">vs Avg</th>
+                            {(getPriceData.commodityPrices[selectedCommodity.id]?.marketPrices?.length || 0) >= 2 && (
+                              <th className="pb-3 text-right pr-4 sm:pr-0">vs Avg</th>
+                            )}
                           </tr>
                         </thead>
                         <tbody>
                           {getPriceData.commodityPrices[selectedCommodity.id]?.marketPrices
                             ?.sort((a, b) => a.price - b.price)
                             .map((mp) => {
-                              const avgPrice = getPriceData.commodityPrices[selectedCommodity.id].avgPrice;
+                              const selectedPrice = getPriceData.commodityPrices[selectedCommodity.id];
+                              const canCompare = (selectedPrice.marketPrices?.length || 0) >= 2;
+                              const avgPrice = selectedPrice.avgPrice;
                               const diff = avgPrice > 0 ? ((mp.price - avgPrice) / avgPrice * 100).toFixed(1) : '0.0';
                               return (
                                 <tr key={mp.market_id} className="border-b border-gray-800 hover:bg-gray-800/50">
                                   <td className="py-3 pl-4 sm:pl-0 font-medium text-sm sm:text-base">{mp.market?.name}</td>
                                   <td className="py-3 text-gray-400 text-xs sm:text-sm">{mp.market?.city}, {mp.market?.state}</td>
                                   <td className="py-3 text-right font-semibold text-sm sm:text-base">{formatPrice(mp.price)}</td>
-                                  <td className="py-3 text-right pr-4 sm:pr-0">
-                                    <span className={`text-xs sm:text-sm ${diff < 0 ? 'text-green-400' : diff > 0 ? 'text-red-400' : 'text-gray-400'}`}>
-                                      {diff > 0 ? '+' : ''}{diff}%
-                                    </span>
-                                  </td>
+                                  {canCompare && (
+                                    <td className="py-3 text-right pr-4 sm:pr-0">
+                                      <span className={`text-xs sm:text-sm ${diff < 0 ? 'text-green-400' : diff > 0 ? 'text-red-400' : 'text-gray-400'}`}>
+                                        {diff > 0 ? '+' : ''}{diff}%
+                                      </span>
+                                    </td>
+                                  )}
                                 </tr>
                               );
                             })}
@@ -1142,10 +1186,10 @@ function PriceNijaApp() {
                             <span className="truncate">{market.city}, {market.state}</span>
                           </p>
                         </div>
-                        {marketData && (
+                        {marketData && marketData.avgChange !== 0 && (
                           <span className={`px-2 py-1 rounded-lg text-xs sm:text-sm font-medium flex-shrink-0 ml-2
-                            ${marketData.avgChange >= 0 ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
-                            {marketData.avgChange >= 0 ? '+' : ''}{marketData.avgChange.toFixed(1)}%
+                            ${marketData.avgChange > 0 ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                            {marketData.avgChange > 0 ? '+' : ''}{marketData.avgChange.toFixed(1)}%
                           </span>
                         )}
                       </div>
@@ -1271,7 +1315,7 @@ function PriceNijaApp() {
             {/* Brand Column */}
             <div className="md:col-span-1">
               <p className="text-gray-400 text-sm mb-4">
-                Nigeria&apos;s leading agricultural commodity price tracker. Real-time market intelligence for smarter decisions.
+                Nigeria&apos;s agricultural commodity price tracker. Prices are as of the newest date on record.
               </p>
               {/* Social Links */}
               <div className="flex gap-3">
@@ -1324,8 +1368,16 @@ function PriceNijaApp() {
               </ul>
               <h4 className="font-semibold text-white mb-3 mt-6">Legal</h4>
               <ul className="space-y-2 text-sm">
-                <li><span className="text-gray-500 flex items-center gap-2"><Shield size={14} /> Privacy Policy</span></li>
-                <li><span className="text-gray-500 flex items-center gap-2"><FileText size={14} /> Terms of Service</span></li>
+                <li>
+                  <Link href="/privacy" className="text-gray-400 hover:text-green-400 transition flex items-center gap-2">
+                    <Shield size={14} /> Privacy Policy
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/terms" className="text-gray-400 hover:text-green-400 transition flex items-center gap-2">
+                    <FileText size={14} /> Terms of Service
+                  </Link>
+                </li>
               </ul>
             </div>
           </div>

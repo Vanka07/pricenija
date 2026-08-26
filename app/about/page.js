@@ -45,12 +45,12 @@ export default function AboutPage() {
   const features = [
     {
             icon: <TrendingUp className="text-green-400" size={28} />,
-            title: 'Real-Time Prices',
-            description: 'Get up-to-date commodity prices from major Nigerian markets, updated regularly to help you make informed decisions.'
+            title: 'Latest Stored Prices',
+            description: 'See commodity prices from major Nigerian markets as of the newest date on record, to help you make informed decisions.'
     },
     {
             icon: <MapPin className="text-blue-400" size={28} />,
-            title: '8+ Major Markets',
+            title: '8 Major Markets',
             description: 'Compare prices across Dawanau, Mile 12, Bodija, Wuse, Saminaka, Minna, Ogbete, Wurukum, and other top Nigerian commodity markets.'
     },
     {
@@ -69,7 +69,7 @@ export default function AboutPage() {
       {
               step: 1,
               title: 'Browse Commodities',
-              description: 'Explore our database of 18+ agricultural commodities including grains, legumes, tubers, and vegetables.'
+              description: 'Explore our database of 18 agricultural commodities including grains, legumes, tubers, and vegetables.'
       },
       {
               step: 2,
@@ -91,7 +91,7 @@ export default function AboutPage() {
   const faqs = [
     {
             question: 'How often are prices updated?',
-            answer: 'Prices are updated regularly based on market data. The "Last updated" timestamp on the dashboard shows when data was last refreshed.'
+            answer: 'Prices are as of the newest date stored in our records. The status bar on each page shows “Latest on record” and that as-of date. We do not stream live stall prices.'
     },
     {
             question: 'Which markets do you cover?',
@@ -137,7 +137,7 @@ export default function AboutPage() {
           </h1>
             <p className="text-gray-400 text-lg sm:text-xl max-w-3xl mx-auto mb-8">
                       Helping farmers, traders, and consumers make smarter buying decisions
-              by providing real-time commodity price data from Nigeria&apos;s top markets.
+              by providing commodity price data as of the newest date on record from Nigeria&apos;s top markets.
                 </p>
             <div className="flex flex-wrap justify-center gap-4">
                             <Link href="/" className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-xl font-medium transition flex items-center gap-2">
@@ -198,9 +198,9 @@ export default function AboutPage() {
 {/* Stats */}
           <div className="mt-12 grid grid-cols-2 sm:grid-cols-4 gap-6">
           {[
-          { value: '18+', label: 'Commodities' },
-          { value: '8+', label: 'Markets' },
-          { value: 'Live', label: 'Price Updates' },
+          { value: '18', label: 'Commodities' },
+          { value: '8', label: 'Markets' },
+          { value: 'As of', label: 'Newest stored date' },
           { value: 'Free', label: 'To Use' }
                         ].map((stat, index) => (
                           <div key={index} className="text-center">
@@ -321,7 +321,12 @@ export default function AboutPage() {
                     <Logo size="sm" />
                     <span className="font-bold text-lg">PriceNija</span>
         </div>
-          <p className="text-gray-500 text-sm mb-4">Nigeria&apos;s leading agricultural commodity price tracker.</p>
+          <p className="text-gray-500 text-sm mb-4">Nigeria&apos;s agricultural commodity price tracker. Prices are as of the newest date on record.</p>
+          <p className="text-gray-500 text-sm mb-4">
+            <Link href="/privacy" className="hover:text-green-400">Privacy Policy</Link>
+            <span className="mx-2">·</span>
+            <Link href="/terms" className="hover:text-green-400">Terms of Service</Link>
+          </p>
           <p className="text-gray-600 text-xs">&copy; {new Date().getFullYear()} PriceNija. All rights reserved.</p>
         </div>
         </footer>

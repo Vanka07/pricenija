@@ -1,7 +1,7 @@
 {
   "name": "PriceNija - Nigerian Commodity Price Tracker",
   "short_name": "PriceNija",
-  "description": "Track real-time agricultural commodity prices across Nigerian markets",
+  "description": "Compare agricultural commodity prices as of the newest stored date across Nigerian markets",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#030712",
