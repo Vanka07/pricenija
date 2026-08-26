@@ -119,15 +119,20 @@ function PageShellInner({
               <div className="relative">
                 <button className="relative p-2 min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 hover:text-white"
                   onClick={() => setShowNotifications(!showNotifications)}
-                  aria-label="Notifications">
+                  aria-label="Price movers">
                   <Bell size={20} />
-                  {(topGainers.length > 0 || topLosers.length > 0) && (
+                  {user && (topGainers.length > 0 || topLosers.length > 0) && (
                     <span className="absolute top-1.5 right-1.5 min-w-[16px] h-4 bg-red-500 rounded-full flex items-center justify-center text-[10px] font-bold text-white px-1">
                       {topGainers.length + topLosers.length}
                     </span>
                   )}
                 </button>
-                <NotificationDropdown show={showNotifications} topGainers={topGainers} topLosers={topLosers} />
+                <NotificationDropdown
+                  show={showNotifications}
+                  topGainers={topGainers}
+                  topLosers={topLosers}
+                  isLoggedIn={!!user}
+                />
               </div>
 
               {user ? (
@@ -198,7 +203,7 @@ function PageShellInner({
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 mb-8">
             <div className="md:col-span-1">
               <p className="text-gray-400 text-sm mb-4">
-                Nigeria&apos;s leading agricultural commodity price tracker. Real-time market intelligence for smarter decisions.
+                Nigeria&apos;s agricultural commodity price tracker. Prices are as of the newest date on record.
               </p>
               <div className="flex gap-3">
                 <span className="w-9 h-9 bg-gray-800 rounded-lg flex items-center justify-center text-gray-500 cursor-default" aria-label="Twitter">
@@ -244,8 +249,16 @@ function PageShellInner({
               </ul>
               <h4 className="font-semibold text-white mb-3 mt-6">Legal</h4>
               <ul className="space-y-2 text-sm">
-                <li><span className="text-gray-500 flex items-center gap-2"><Shield size={14} /> Privacy Policy</span></li>
-                <li><span className="text-gray-500 flex items-center gap-2"><FileText size={14} /> Terms of Service</span></li>
+                <li>
+                  <Link href="/privacy" className="text-gray-400 hover:text-green-400 transition flex items-center gap-2">
+                    <Shield size={14} /> Privacy Policy
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/terms" className="text-gray-400 hover:text-green-400 transition flex items-center gap-2">
+                    <FileText size={14} /> Terms of Service
+                  </Link>
+                </li>
               </ul>
             </div>
           </div>

@@ -32,16 +32,16 @@
     <text x="530" y="195" font-family="Arial, sans-serif" font-size="64" font-weight="800" fill="white">Price</text>
     <text x="690" y="195" font-family="Arial, sans-serif" font-size="64" font-weight="800" fill="#22c55e">Nija</text>
     <text x="530" y="225" font-family="Arial, sans-serif" font-size="14" fill="#9ca3af" letter-spacing="3">MARKET INTELLIGENCE</text>
-    <text x="600" y="320" font-family="Arial, sans-serif" font-size="26" fill="#d1d5db" text-anchor="middle">Track real-time commodity prices across</text>
+    <text x="600" y="320" font-family="Arial, sans-serif" font-size="26" fill="#d1d5db" text-anchor="middle">Commodity prices as of the newest stored date across</text>
     <text x="600" y="355" font-family="Arial, sans-serif" font-size="26" fill="#d1d5db" text-anchor="middle">Nigeria's top markets</text>
     <text x="300" y="440" font-family="Arial, sans-serif" font-size="28" text-anchor="middle">🌽</text>
-    <text x="300" y="480" font-family="Arial, sans-serif" font-size="32" font-weight="700" fill="#22c55e" text-anchor="middle">18+</text>
+    <text x="300" y="480" font-family="Arial, sans-serif" font-size="32" font-weight="700" fill="#22c55e" text-anchor="middle">18</text>
     <text x="300" y="505" font-family="Arial, sans-serif" font-size="12" fill="#9ca3af" text-anchor="middle" letter-spacing="1">COMMODITIES</text>
     <text x="600" y="440" font-family="Arial, sans-serif" font-size="28" text-anchor="middle">📍</text>
-    <text x="600" y="480" font-family="Arial, sans-serif" font-size="32" font-weight="700" fill="#22c55e" text-anchor="middle">5+</text>
+    <text x="600" y="480" font-family="Arial, sans-serif" font-size="32" font-weight="700" fill="#22c55e" text-anchor="middle">8</text>
     <text x="600" y="505" font-family="Arial, sans-serif" font-size="12" fill="#9ca3af" text-anchor="middle" letter-spacing="1">MARKETS</text>
     <text x="900" y="440" font-family="Arial, sans-serif" font-size="28" text-anchor="middle">📊</text>
-    <text x="900" y="480" font-family="Arial, sans-serif" font-size="32" font-weight="700" fill="#22c55e" text-anchor="middle">Live</text>
-    <text x="900" y="505" font-family="Arial, sans-serif" font-size="12" fill="#9ca3af" text-anchor="middle" letter-spacing="1">PRICE UPDATES</text>
+    <text x="900" y="480" font-family="Arial, sans-serif" font-size="32" font-weight="700" fill="#22c55e" text-anchor="middle">As of</text>
+    <text x="900" y="505" font-family="Arial, sans-serif" font-size="12" fill="#9ca3af" text-anchor="middle" letter-spacing="1">NEWEST STORED DATE</text>
     <text x="600" y="590" font-family="Arial, sans-serif" font-size="18" fill="#6b7280" text-anchor="middle" letter-spacing="2">pricenija.com</text>
 </svg>

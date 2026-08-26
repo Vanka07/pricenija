@@ -38,12 +38,26 @@ function PricesPageContent() {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedPeriod, setSelectedPeriod] = useState('30d');
 
-  // Set default selected commodity once data loads
+  const filteredCommodities = useMemo(() =>
+    commodities.filter(c =>
+      c.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
+      (selectedCategory === 'All' || c.category === selectedCategory)
+    ), [commodities, searchQuery, selectedCategory]);
+
+  const visiblePricedCommodities = useMemo(
+    () => filteredCommodities.filter((commodity) => getPriceData.commodityPrices[commodity.id]),
+    [filteredCommodities, getPriceData]
+  );
+
+  // Keep the detail pane on a commodity that is still in the filtered list
   useEffect(() => {
-    if (!selectedCommodity && commodities.length > 0) {
-      setSelectedCommodity(commodities[0]);
+    if (visiblePricedCommodities.length === 0) return;
+    const stillVisible = selectedCommodity
+      && visiblePricedCommodities.some((c) => c.id === selectedCommodity.id);
+    if (!stillVisible) {
+      setSelectedCommodity(visiblePricedCommodities[0]);
     }
-  }, [commodities, selectedCommodity]);
+  }, [visiblePricedCommodities, selectedCommodity]);
 
   // Fetch history when commodity or period changes
   useEffect(() => {
@@ -51,12 +65,6 @@ function PricesPageContent() {
       fetchCommodityHistory(selectedCommodity.id, selectedPeriod);
     }
   }, [selectedCommodity, selectedPeriod, priceHistory, fetchCommodityHistory]);
-
-  const filteredCommodities = useMemo(() =>
-    commodities.filter(c =>
-      c.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
-      (selectedCategory === 'All' || c.category === selectedCategory)
-    ), [commodities, searchQuery, selectedCategory]);
 
   const renderChangeIndicator = (change) => {
     if (change > 0) return <span className="text-green-400 flex items-center gap-1"><ArrowUpRight size={14} />+{change.toFixed(1)}%</span>;
@@ -206,41 +214,62 @@ function PricesPageContent() {
                   </div>
                 </div>
 
-                {getPriceData.commodityPrices[selectedCommodity.id] && (
+                {getPriceData.commodityPrices[selectedCommodity.id] && (() => {
+                  const selectedPrice = getPriceData.commodityPrices[selectedCommodity.id];
+                  const marketCount = selectedPrice.marketPrices?.length || 0;
+                  if (marketCount < 2) {
+                    return (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mt-4 sm:mt-6">
+                        <div className="bg-gray-800 rounded-xl p-3 sm:p-4">
+                          <p className="text-gray-400 text-xs sm:text-sm">Price</p>
+                          <p className="text-lg sm:text-xl font-bold mt-1">
+                            {formatPrice(selectedPrice.avgPrice)}
+                          </p>
+                          {selectedPrice.lowestMarket?.name && (
+                            <p className="text-xs text-gray-400 mt-1 truncate">
+                              @ {selectedPrice.lowestMarket.name}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  }
+                  return (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mt-4 sm:mt-6">
                     <div className="bg-gray-800 rounded-xl p-3 sm:p-4">
                       <p className="text-gray-400 text-xs sm:text-sm">Average Price</p>
                       <p className="text-lg sm:text-xl font-bold mt-1">
-                        {formatPrice(getPriceData.commodityPrices[selectedCommodity.id].avgPrice)}
+                        {formatPrice(selectedPrice.avgPrice)}
                       </p>
                     </div>
                     <div className="bg-green-900/30 rounded-xl p-3 sm:p-4 border border-green-700">
                       <p className="text-green-400 text-xs sm:text-sm">Lowest Price</p>
                       <p className="text-lg sm:text-xl font-bold mt-1 text-green-400">
-                        {formatPrice(getPriceData.commodityPrices[selectedCommodity.id].lowestPrice)}
+                        {formatPrice(selectedPrice.lowestPrice)}
                       </p>
                       <p className="text-xs text-gray-400 mt-1 truncate">
-                        @ {getPriceData.commodityPrices[selectedCommodity.id].lowestMarket?.name}
+                        @ {selectedPrice.lowestMarket?.name}
                       </p>
                     </div>
                     <div className="bg-red-900/30 rounded-xl p-3 sm:p-4 border border-red-700">
                       <p className="text-red-400 text-xs sm:text-sm">Highest Price</p>
                       <p className="text-lg sm:text-xl font-bold mt-1 text-red-400">
-                        {formatPrice(getPriceData.commodityPrices[selectedCommodity.id].highestPrice)}
+                        {formatPrice(selectedPrice.highestPrice)}
                       </p>
                       <p className="text-xs text-gray-400 mt-1 truncate">
-                        @ {getPriceData.commodityPrices[selectedCommodity.id].highestMarket?.name}
+                        @ {selectedPrice.highestMarket?.name}
                       </p>
                     </div>
                     <div className="bg-gray-800 rounded-xl p-3 sm:p-4">
                       <p className="text-gray-400 text-xs sm:text-sm">Price Spread</p>
                       <p className="text-lg sm:text-xl font-bold mt-1">
-                        {formatPrice(getPriceData.commodityPrices[selectedCommodity.id].priceSpread)}
+                        {formatPrice(selectedPrice.priceSpread)}
                       </p>
                       <p className="text-xs text-gray-400 mt-1">Potential savings</p>
                     </div>
                   </div>
-                )}
+                  );
+                })()}
               </div>
 
               {/* Price Trend Chart */}
@@ -282,25 +311,31 @@ function PricesPageContent() {
                         <th className="pb-3 pl-4 sm:pl-0">Market</th>
                         <th className="pb-3">Location</th>
                         <th className="pb-3 text-right">Price</th>
-                        <th className="pb-3 text-right pr-4 sm:pr-0">vs Avg</th>
+                        {(getPriceData.commodityPrices[selectedCommodity.id]?.marketPrices?.length || 0) >= 2 && (
+                          <th className="pb-3 text-right pr-4 sm:pr-0">vs Avg</th>
+                        )}
                       </tr>
                     </thead>
                     <tbody>
                       {getPriceData.commodityPrices[selectedCommodity.id]?.marketPrices
                         ?.sort((a, b) => a.price - b.price)
                         .map((mp) => {
-                          const avgPrice = getPriceData.commodityPrices[selectedCommodity.id].avgPrice;
+                          const selectedPrice = getPriceData.commodityPrices[selectedCommodity.id];
+                          const canCompare = (selectedPrice.marketPrices?.length || 0) >= 2;
+                          const avgPrice = selectedPrice.avgPrice;
                           const diff = avgPrice > 0 ? ((mp.price - avgPrice) / avgPrice * 100).toFixed(1) : '0.0';
                           return (
                             <tr key={mp.market_id} className="border-b border-gray-800 hover:bg-gray-800/50">
                               <td className="py-3 pl-4 sm:pl-0 font-medium text-sm sm:text-base">{mp.market?.name}</td>
                               <td className="py-3 text-gray-400 text-xs sm:text-sm">{mp.market?.city}, {mp.market?.state}</td>
                               <td className="py-3 text-right font-semibold text-sm sm:text-base">{formatPrice(mp.price)}</td>
-                              <td className="py-3 text-right pr-4 sm:pr-0">
-                                <span className={`text-xs sm:text-sm ${diff < 0 ? 'text-green-400' : diff > 0 ? 'text-red-400' : 'text-gray-400'}`}>
-                                  {diff > 0 ? '+' : ''}{diff}%
-                                </span>
-                              </td>
+                              {canCompare && (
+                                <td className="py-3 text-right pr-4 sm:pr-0">
+                                  <span className={`text-xs sm:text-sm ${diff < 0 ? 'text-green-400' : diff > 0 ? 'text-red-400' : 'text-gray-400'}`}>
+                                    {diff > 0 ? '+' : ''}{diff}%
+                                  </span>
+                                </td>
+                              )}
                             </tr>
                           );
                         })}

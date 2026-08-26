@@ -81,10 +81,10 @@ function MarketsPageContent() {
                         <span className="truncate">{market.city}, {market.state}</span>
                       </p>
                     </div>
-                    {marketData && (
+                    {marketData && marketData.avgChange !== 0 && (
                       <span className={`px-2 py-1 rounded-lg text-xs sm:text-sm font-medium flex-shrink-0 ml-2
-                        ${marketData.avgChange >= 0 ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
-                        {marketData.avgChange >= 0 ? '+' : ''}{marketData.avgChange.toFixed(1)}%
+                        ${marketData.avgChange > 0 ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                        {marketData.avgChange > 0 ? '+' : ''}{marketData.avgChange.toFixed(1)}%
                       </span>
                     )}
                   </div>
