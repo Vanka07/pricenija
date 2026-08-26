@@ -10,12 +10,13 @@ import {
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { supabase, onAuthStateChange } from '../lib/supabase';
+import { supabase, onAuthStateChange, fetchLatestPrices, fetchPriceHistory as fetchPriceHistoryFromDb } from '../lib/supabase';
 import { PageLoadingSkeleton } from './components/LoadingSkeleton';
 import Logo from './components/Logo';
 import AuthModal from './components/AuthModal';
 import NotificationDropdown from './components/NotificationDropdown';
 import BottomNav from './components/BottomNav';
+import DataFreshness from './components/DataFreshness';
 import { ToastProvider, useToast } from './components/Toast';
 
 import Sparkline from './components/Sparkline';
@@ -153,16 +154,10 @@ function PriceNijaApp() {
       if (commoditiesError) throw commoditiesError;
       setCommodities(commoditiesData || []);
 
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      const { data: pricesData, error: pricesError } = await supabase
-        .from('prices').select('*, commodity:commodities(*), market:markets(*)')
-        .gte('date', thirtyDaysAgo.toISOString().split('T')[0])
-        .order('date', { ascending: false })
-        .limit(5000);
+      const { data: pricesData, error: pricesError, newestDate } = await fetchLatestPrices();
       if (pricesError) throw pricesError;
       setPrices(pricesData || []);
-      setLastUpdated(new Date());
+      setLastUpdated(newestDate ? new Date(`${newestDate}T00:00:00`) : new Date());
       if (!selectedCommodity && commoditiesData?.length > 0) setSelectedCommodity(commoditiesData[0]);
     } catch (err) {
       console.error('Error fetching data:', err);
@@ -187,13 +182,7 @@ function PriceNijaApp() {
     try {
       const daysMap = { '7d': 7, '30d': 30, '90d': 90 };
       const days = daysMap[period] || 30;
-      const startDate = new Date();
-      startDate.setDate(startDate.getDate() - days);
-      const { data, error } = await supabase
-        .from('prices').select('date, price, market:markets(name)')
-        .eq('commodity_id', commodityId)
-        .gte('date', startDate.toISOString().split('T')[0])
-        .order('date', { ascending: true });
+      const { data, error } = await fetchPriceHistoryFromDb(commodityId, days);
       if (!error && data) {
         const grouped = data.reduce((acc, item) => {
           if (!acc[item.date]) acc[item.date] = { prices: [], date: item.date };
@@ -586,15 +575,7 @@ function PriceNijaApp() {
 <div className="bg-gray-900 border-b border-gray-800 py-2">
   <div className="max-w-7xl mx-auto px-3 sm:px-4 flex items-center justify-between text-xs sm:text-sm">
           <div className="flex items-center gap-2">
-            <span className="flex items-center gap-1">
-              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-              <span className="text-green-400">Live</span>
-            </span>
-            <span className="text-gray-500">
-              Last updated: {lastUpdated?.toLocaleString('en-NG', {
-                day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
-              }) || 'Loading...'}
-            </span>
+            <DataFreshness lastUpdated={lastUpdated} />
           </div>
             <button onClick={handleRefresh} disabled={refreshing}
               className="flex items-center gap-1 text-green-400 hover:text-green-300 disabled:opacity-50"
@@ -692,7 +673,7 @@ function PriceNijaApp() {
                 <AlertCircle size={48} className="text-yellow-500 mx-auto mb-4" />
                 <h3 className="text-lg sm:text-xl font-semibold mb-2">No Price Data Yet</h3>
                 <p className="text-gray-400 mb-4 text-sm sm:text-base">
-                  Prices haven&apos;t been entered for today. Check back later or contact the admin.
+                  No price records are available. Run the commodity scraper or add prices in the admin panel.
                 </p>
               </div>
             ) : (
@@ -1219,7 +1200,7 @@ function PriceNijaApp() {
                 <p className="text-gray-400 mb-2 text-sm sm:text-base max-w-md mx-auto">
                   Start tracking commodities by clicking the <Star size={14} className="inline text-yellow-400" fill="currentColor" /> star icon on any commodity.
                 </p>
-                <p className="text-gray-500 text-xs mb-6">You'll see price changes and trends here at a glance.</p>
+                <p className="text-gray-500 text-xs mb-6">You&apos;ll see price changes and trends here at a glance.</p>
                 <button onClick={() => setActiveTab('prices')}
                   className="bg-green-500 hover:bg-green-600 text-white px-6 py-2.5 rounded-xl font-semibold transition-all duration-200 shadow-lg shadow-green-500/25 hover:scale-[1.02] active:scale-[0.98]">
                   Browse Commodities

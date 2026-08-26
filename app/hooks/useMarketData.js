@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { supabase, onAuthStateChange } from '../../lib/supabase';
+import { supabase, onAuthStateChange, fetchLatestPrices, fetchPriceHistory as fetchPriceHistoryFromDb } from '../../lib/supabase';
 
 export default function useMarketData() {
   const [user, setUser] = useState(null);
@@ -68,16 +68,10 @@ export default function useMarketData() {
       if (commoditiesError) throw commoditiesError;
       setCommodities(commoditiesData || []);
 
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      const { data: pricesData, error: pricesError } = await supabase
-        .from('prices').select('*, commodity:commodities(*), market:markets(*)')
-        .gte('date', thirtyDaysAgo.toISOString().split('T')[0])
-        .order('date', { ascending: false })
-        .limit(5000);
+      const { data: pricesData, error: pricesError, newestDate } = await fetchLatestPrices();
       if (pricesError) throw pricesError;
       setPrices(pricesData || []);
-      setLastUpdated(new Date());
+      setLastUpdated(newestDate ? new Date(`${newestDate}T00:00:00`) : new Date());
     } catch (err) {
       console.error('Error fetching data:', err);
       setError('Failed to load market data. Please try again.');
@@ -101,13 +95,7 @@ export default function useMarketData() {
     try {
       const daysMap = { '7d': 7, '30d': 30, '90d': 90 };
       const days = daysMap[period] || 30;
-      const startDate = new Date();
-      startDate.setDate(startDate.getDate() - days);
-      const { data, error } = await supabase
-        .from('prices').select('date, price, market:markets(name)')
-        .eq('commodity_id', commodityId)
-        .gte('date', startDate.toISOString().split('T')[0])
-        .order('date', { ascending: true });
+      const { data, error } = await fetchPriceHistoryFromDb(commodityId, days);
       if (!error && data) {
         const grouped = data.reduce((acc, item) => {
           if (!acc[item.date]) acc[item.date] = { prices: [], date: item.date };

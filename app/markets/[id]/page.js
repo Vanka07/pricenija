@@ -4,7 +4,8 @@ import { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { MapPin, ArrowLeft, TrendingUp, TrendingDown, Package, Clock, BarChart3, ArrowDownRight, ArrowUpRight } from 'lucide-react';
-import { supabase } from '../../../lib/supabase';
+import { supabase, fetchNewestPriceDate } from '../../../lib/supabase';
+import { PRICE_LOOKBACK_DAYS, subtractDays } from '../../../lib/priceWindow';
 
 export default function MarketDetailPage() {
   const params = useParams();
@@ -39,16 +40,16 @@ export default function MarketDetailPage() {
         if (pricesError) throw pricesError;
         setPrices(pricesData || []);
 
-        // Fetch ALL latest prices across ALL markets for comparison
-        // Use a 30-day window to ensure we capture all markets even if they report on different days
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        // Fetch latest prices across all markets for comparison.
+        // Look back from the newest stored date so a paused scraper still shows data.
+        const { date: newestDate } = await fetchNewestPriceDate();
+        const startDate = subtractDays(newestDate, PRICE_LOOKBACK_DAYS);
 
         // Supabase defaults to 1000 rows; explicitly request more to avoid silent truncation
         const { data: allPrices, error: allPricesError } = await supabase
           .from('prices')
           .select('*, market:markets(id, name, city, state)')
-          .gte('date', thirtyDaysAgo.toISOString().split('T')[0])
+          .gte('date', startDate)
           .order('date', { ascending: false })
           .limit(5000);
 

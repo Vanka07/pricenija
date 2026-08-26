@@ -4,7 +4,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import { SUPABASE_URL, SUPABASE_KEY, MATCH_THRESHOLD } from './config.js';
+import { SUPABASE_URL, SUPABASE_KEY, HAS_SERVICE_KEY, MATCH_THRESHOLD } from './config.js';
 import { findBestMatch, log } from './utils.js';
 
 let supabase = null;
@@ -13,7 +13,7 @@ function getSupabase() {
   if (!supabase) {
     if (!SUPABASE_URL || !SUPABASE_KEY) {
       throw new Error(
-        'Missing Supabase credentials. Set SUPABASE_URL and SUPABASE_SERVICE_KEY environment variables.\n' +
+        'Missing Supabase credentials. Set SUPABASE_URL and SUPABASE_SERVICE_KEY (or NEXT_PUBLIC_SUPABASE_ANON_KEY for dry-run matching).\n' +
         'Copy .env.example to .env and fill in your credentials.'
       );
     }
@@ -127,6 +127,12 @@ export async function writePrices(matchedPrices) {
   if (matchedPrices.length === 0) {
     log.warn('No prices to write');
     return { written: 0, errors: 0 };
+  }
+
+  if (!HAS_SERVICE_KEY) {
+    throw new Error(
+      'Writing prices requires SUPABASE_SERVICE_KEY. Dry-run matching can use the public anon key.'
+    );
   }
   
   const sb = getSupabase();

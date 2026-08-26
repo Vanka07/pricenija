@@ -8,7 +8,7 @@
  *   - Groundnut (100kg) @ Mile 12, Lagos State == ₦45,000
  */
 
-import { parsePrice, log } from '../utils.js';
+import { extractSourceDate, fetchPage, parsePrice, log } from '../utils.js';
 
 const SOURCE_URL = 'https://nigerianqueries.com/prices-of-commodities-in-nigeria/';
 
@@ -69,11 +69,7 @@ const SKIP_UNITS = ['paint bucket', 'mudu', 'congo', 'tier', 'big', 'medium', 's
 export async function scrapeNigerianQueries() {
   log.info('Scraping NigerianQueries...');
 
-  const response = await fetch(SOURCE_URL, {
-    headers: {
-      'User-Agent': 'PriceNija-Scraper/1.0 (commodity price aggregator)',
-    },
-  });
+  const response = await fetchPage(SOURCE_URL);
 
   if (!response.ok) {
     throw new Error(`NigerianQueries returned ${response.status}: ${response.statusText}`);
@@ -82,12 +78,9 @@ export async function scrapeNigerianQueries() {
   const html = await response.text();
   const results = [];
 
-  // Extract publish date from meta tag: article:published_time
-  let sourceDate = null;
-  const dateMatch = html.match(/published_time["\s]+content="(\d{4}-\d{2}-\d{2})/);
-  if (dateMatch) {
-    sourceDate = dateMatch[1];
-    log.info(`NigerianQueries: source published date is ${sourceDate}`);
+  const sourceDate = extractSourceDate(html, response.headers);
+  if (sourceDate) {
+    log.info(`NigerianQueries: source date is ${sourceDate}`);
   } else {
     log.warn('NigerianQueries: could not extract publish date from page');
   }

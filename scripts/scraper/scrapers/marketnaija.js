@@ -9,7 +9,7 @@
 
 import * as cheerio from 'cheerio';
 import { SOURCES } from '../config.js';
-import { parsePrice, log } from '../utils.js';
+import { extractSourceDate, fetchPage, log } from '../utils.js';
 
 /**
  * Scrape all prices from MarketNaijaTv
@@ -18,11 +18,7 @@ import { parsePrice, log } from '../utils.js';
 export async function scrapeMarketNaija() {
   log.info('Scraping MarketNaijaTv...');
   
-  const response = await fetch(SOURCES.MARKET_NAIJA, {
-    headers: {
-      'User-Agent': 'PriceNija-Scraper/1.0 (commodity price aggregator)',
-    },
-  });
+  const response = await fetchPage(SOURCES.MARKET_NAIJA);
   
   if (!response.ok) {
     throw new Error(`MarketNaijaTv returned ${response.status}: ${response.statusText}`);
@@ -33,15 +29,12 @@ export async function scrapeMarketNaija() {
   
   const results = [];
 
-  // Try to extract date from meta tags or page content
-  let sourceDate = null;
-  const metaDate = $('meta[property="article:modified_time"]').attr('content') 
-    || $('meta[property="article:published_time"]').attr('content');
-  if (metaDate) {
-    sourceDate = metaDate.split('T')[0];
+  // Prefer a real page/header date. Matcher skips rows with no date.
+  const sourceDate = extractSourceDate(html, response.headers);
+  if (sourceDate) {
     log.info(`MarketNaijaTv: source date is ${sourceDate}`);
   } else {
-    log.warn('MarketNaijaTv: could not extract date from page — prices will use source date or be skipped');
+    log.warn('MarketNaijaTv: could not extract date from page — prices without a date will be skipped');
   }
   
   // Find all heading widgets with h2 elements

@@ -1,117 +1,109 @@
-# 🇳🇬 PriceNija
+# PriceNija
 
-**Nigerian Commodity Market Price Tracker**
+Nigerian agricultural commodity price tracker. Compare wholesale prices across major markets, watch trends, and keep a personal watchlist.
 
-Real-time agricultural commodity prices across Nigeria's major markets.
+**Live site:** https://www.pricenija.com  
+**Stack:** Next.js 14 (App Router) + Supabase
 
-## 🚀 Quick Deploy to Vercel
+## What was stale (Aug 2026)
 
-### Option 1: Deploy via GitHub (Recommended)
+The app was still deployed, and Supabase still had 8 markets / 18 commodities / 143 price rows. The last stored price date was **2026-03-03**. The UI only loaded the last **30 calendar days**, so visitors saw an empty dashboard even though older prices existed. The scraper had no scheduled job after it was added in January 2026.
 
-1. **Create a new repository on GitHub**
-   - Go to github.com and create a new repository named `pricenija`
+This repo now:
 
-2. **Upload these files to GitHub**
-   - Upload all files from this folder to your new repository
+- Loads the latest **90 days relative to the newest stored price**, not “today minus 30”
+- Labels data as **Latest on record** when it is more than 3 days old
+- Ships a GitHub Action that can scrape sources daily once secrets are set
+- Documents the real env vars and how to run a fresh clone
 
-3. **Deploy on Vercel**
-   - Go to [vercel.com](https://vercel.com)
-   - Click "Add New Project"
-   - Import your GitHub repository
-   - Vercel will auto-detect Next.js and deploy
+## Local development
 
-4. **Connect your domain**
-   - In Vercel dashboard, go to Settings → Domains
-   - Add `pricenija.com`
-   - Update DNS in GoDaddy (instructions below)
-
-### Option 2: Deploy via Vercel CLI
+Requires Node 18.17+ (Node 20 recommended).
 
 ```bash
-npm install -g vercel
-vercel login
-vercel --prod
-```
-
-## 🌐 Connect GoDaddy Domain to Vercel
-
-### Step 1: Get Vercel DNS Records
-After deploying, Vercel will give you one of these:
-- **A Record**: `76.76.21.21`
-- **CNAME**: `cname.vercel-dns.com`
-
-### Step 2: Update GoDaddy DNS
-
-1. Log in to GoDaddy
-2. Go to "My Products" → Find your domain → "DNS"
-3. Delete existing A and CNAME records for @ and www
-4. Add new records:
-
-| Type | Name | Value | TTL |
-|------|------|-------|-----|
-| A | @ | 76.76.21.21 | 600 |
-| CNAME | www | cname.vercel-dns.com | 600 |
-
-5. Wait 5-30 minutes for DNS propagation
-
-### Step 3: Verify in Vercel
-- Go to your Vercel project → Settings → Domains
-- Add `pricenija.com` and `www.pricenija.com`
-- Vercel will verify and issue SSL certificate automatically
-
-## 📁 Project Structure
-
-```
-pricenija-app/
-├── app/
-│   ├── globals.css      # Global styles
-│   ├── layout.js        # Root layout with metadata
-│   └── page.js          # Main page component
-├── package.json         # Dependencies
-├── next.config.js       # Next.js config
-├── tailwind.config.js   # Tailwind config
-├── postcss.config.js    # PostCSS config
-└── .gitignore          # Git ignore file
-```
-
-## 🛠️ Local Development
-
-```bash
-# Install dependencies
+cp .env.example .env.local
 npm install
-
-# Run development server
 npm run dev
-
-# Build for production
-npm run build
-
-# Start production server
-npm start
 ```
 
-## ✨ Features
+Open http://localhost:3000. The example env points at the existing public PriceNija Supabase project (anon key only — read access).
 
-- 📊 Real-time price tracking
-- 🏪 5 major Nigerian markets
-- 🌾 18 commodities
-- 📈 Price trend charts
-- ⭐ Watchlist functionality
-- 📱 Mobile responsive
-- 🌙 Dark theme
+```bash
+npm run build   # production build + sitemap
+npm run lint    # ESLint via next lint
+```
 
-## 🇳🇬 Markets Covered
+### Environment variables
 
-- Dawanau (Kano)
-- Mile 12 (Lagos)
-- Bodija (Ibadan)
-- Ogbete Main (Enugu)
-- Wuse (Abuja)
+| Variable | Where | Purpose |
+|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | `.env.local`, Vercel | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `.env.local`, Vercel | Public anon key (browser) |
+| `SUPABASE_URL` | `scripts/scraper/.env`, GitHub Actions | Same project URL for the scraper |
+| `SUPABASE_SERVICE_KEY` | `scripts/scraper/.env`, GitHub Actions | **Service role key** — write prices only |
 
-## 📞 Support
+Never put the service role key in the Next.js app or Vercel public env.
 
-Questions? Contact: hello@pricenija.com
+## Scraper
 
----
+Sources (still live as of this revival):
 
-**Made with ❤️ for Nigeria**
+| Source | URL |
+|---|---|
+| MarketNaijaTv | https://marketnaijatv.com/commodity-market-prices/ |
+| PluckAgro | https://pluckagro.com/liveprice/ |
+| NigerianQueries | https://nigerianqueries.com/prices-of-commodities-in-nigeria/ |
+
+```bash
+cd scripts/scraper
+npm install
+cp .env.example .env   # add SUPABASE_URL + SUPABASE_SERVICE_KEY
+npm run scrape:dry     # scrape + match, no writes
+npm run scrape         # upsert matched prices
+```
+
+From the repo root: `npm run scrape:dry` or `npm run scrape`.
+
+The matcher only writes rows that have a **real source date**. It will not invent today’s date.
+
+**Source coverage vs the 8 tracked markets:** NigerianQueries maps cleanly onto Bodija, Dawanau, and Mile 12 (24/24 matched in a dry run, dated 2026-07-22). MarketNaijaTv still scrapes (~95 prices) but those pages cover rural markets (Suleja, Giwa, Soba, …) that are not in the current `markets` table, so they do not upsert until Jay adds those markets. PluckAgro still lists Dawanau and Mile 12.
+
+### Daily scrape (needs Jay)
+
+1. In the GitHub repo, add Actions secrets:
+   - `SUPABASE_URL`
+   - `SUPABASE_SERVICE_KEY`
+2. Enable Actions if they are disabled for this repo
+3. Run **Scrape commodity prices** via *workflow_dispatch*, or wait for the daily 13:00 UTC schedule
+
+This PR does **not** write to production and does **not** deploy.
+
+## Markets and commodities
+
+Markets in the current database: Bodija (Ibadan), Dawanau (Kano), Mile 12 (Lagos), Minna Grain Market, Ogbete Main (Enugu), Saminaka (Kaduna), Wurukum Market (Makurdi), Wuse (Abuja).
+
+Commodities: local/foreign rice, white/yellow maize, millet, red/white sorghum, white/brown beans, groundnut, soybeans, palm oil, white/yellow garri, yam, onions, rodo pepper, tomatoes.
+
+## Routes
+
+| Path | Description |
+|---|---|
+| `/` | Dashboard |
+| `/prices` | Prices, search, charts |
+| `/markets` | Market directory |
+| `/markets/[id]` | Market detail + cross-market compare |
+| `/watchlist` | Signed-in watchlist |
+| `/about` | About / FAQ |
+| `/admin` | Admin (auth required) |
+
+## What still needs Jay
+
+- **Merge this PR** (this branch is not deployed)
+- **Vercel** already has the public Supabase env on production; after merge it will pick up the date-window fix
+- **GitHub Action secrets** so prices start updating again
+- **Service role key** to run the scraper locally
+- **Optional:** tighten Supabase RLS — `markets`, `commodities`, and `prices` currently have public `ALL` policies (`qual = true`). That is separate from this revival.
+
+## Support
+
+hello@pricenija.com

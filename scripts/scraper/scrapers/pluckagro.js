@@ -9,7 +9,7 @@
 
 import * as cheerio from 'cheerio';
 import { SOURCES, REQUEST_DELAY } from '../config.js';
-import { log, sleep } from '../utils.js';
+import { fetchPage, log, sleep } from '../utils.js';
 
 /**
  * Scrape all prices from PluckAgro
@@ -44,11 +44,7 @@ export async function scrapePluckAgro() {
  * Fetch the list of markets from PluckAgro
  */
 async function fetchMarketList() {
-  const response = await fetch(SOURCES.PLUCK_AGRO_MARKETS, {
-    headers: {
-      'User-Agent': 'PriceNija-Scraper/1.0 (commodity price aggregator)',
-    },
-  });
+  const response = await fetchPage(SOURCES.PLUCK_AGRO_MARKETS);
   
   if (!response.ok) {
     throw new Error(`PluckAgro markets page returned ${response.status}`);
@@ -92,11 +88,7 @@ async function fetchMarketPrices(market) {
   
   // Fetch the market page to get the list of commodities
   const url = `${SOURCES.PLUCK_AGRO_MARKET_DETAIL}?market_id=${market.id}`;
-  const response = await fetch(url, {
-    headers: {
-      'User-Agent': 'PriceNija-Scraper/1.0 (commodity price aggregator)',
-    },
-  });
+  const response = await fetchPage(url);
   
   if (!response.ok) {
     throw new Error(`Market detail page returned ${response.status}`);
@@ -160,11 +152,7 @@ async function fetchMarketPrices(market) {
     try {
       await sleep(REQUEST_DELAY);
       const commodityUrl = `${SOURCES.PLUCK_AGRO_MARKET_DETAIL}?market_id=${market.id}&commodity_id=${commodity.id}`;
-      const resp = await fetch(commodityUrl, {
-        headers: {
-          'User-Agent': 'PriceNija-Scraper/1.0 (commodity price aggregator)',
-        },
-      });
+      const resp = await fetchPage(commodityUrl);
       
       if (resp.ok) {
         const commodityHtml = await resp.text();

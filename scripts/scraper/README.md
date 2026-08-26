@@ -65,7 +65,9 @@ Unmatched items are logged so you can add them to the database.
 
 ## Cron Setup
 
-Run daily at 2pm (after market prices are typically updated):
+Preferred: the repo workflow `.github/workflows/scrape-prices.yml` (daily 13:00 UTC / 14:00 WAT, plus manual `workflow_dispatch`). Add GitHub secrets `SUPABASE_URL` and `SUPABASE_SERVICE_KEY`.
+
+Local cron fallback:
 
 ```cron
 0 14 * * * cd /path/to/pricenija/scripts/scraper && node run-scraper.js >> /var/log/pricenija-scraper.log 2>&1

@@ -13,6 +13,7 @@ import AuthModal from './AuthModal';
 import NotificationDropdown from './NotificationDropdown';
 import BottomNav from './BottomNav';
 import { ToastProvider } from './Toast';
+import DataFreshness from './DataFreshness';
 
 const navItems = [
   { id: 'dashboard', href: '/', label: 'Dashboard', icon: Home },
@@ -175,15 +176,7 @@ function PageShellInner({
       <div className="bg-gray-900 border-b border-gray-800 py-2">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 flex items-center justify-between text-xs sm:text-sm">
           <div className="flex items-center gap-2">
-            <span className="flex items-center gap-1">
-              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-              <span className="text-green-400">Live</span>
-            </span>
-            <span className="text-gray-500">
-              Last updated: {lastUpdated?.toLocaleString('en-NG', {
-                day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
-              }) || 'Loading...'}
-            </span>
+            <DataFreshness lastUpdated={lastUpdated} />
           </div>
           <button onClick={onRefresh} disabled={refreshing}
             className="flex items-center gap-1 text-green-400 hover:text-green-300 disabled:opacity-50"

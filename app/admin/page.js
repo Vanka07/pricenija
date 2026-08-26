@@ -1702,7 +1702,7 @@ export default function AdminDashboard() {
                     <div className="text-center py-8">
                       <Package size={40} className="mx-auto text-gray-600 mb-3" />
                       <p className="text-gray-400">No commodities assigned to this market.</p>
-                      <p className="text-sm text-gray-500 mt-1">Go to "Market Setup" to assign commodities.</p>
+                      <p className="text-sm text-gray-500 mt-1">Go to &quot;Market Setup&quot; to assign commodities.</p>
                     </div>
                   ) : (
                     Object.entries(getGroupedMarketCommodities(selectedMarket)).map(([category, items]) => (
