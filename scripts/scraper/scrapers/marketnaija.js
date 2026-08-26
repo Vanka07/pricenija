@@ -1,7 +1,13 @@
 /**
+ * RETIRED — do not import from run-scraper.js.
+ *
+ * Re-checked live 2026-08-26: page is 200 but lists rural markets
+ * (Suleja, Giwa, Soba, Anchau, Donga, Tor Damisa). 0 of the 8 PriceNija
+ * DB markets. LiteSpeed cache stamp is not a price date.
+ *
  * MarketNaijaTv Scraper
  * Source: https://marketnaijatv.com/commodity-market-prices/
- * 
+ *
  * WordPress/Elementor site. Structure:
  *   .elementor-widget-heading h2 → Market Name
  *   .elementor-widget-text-editor p → Price lines

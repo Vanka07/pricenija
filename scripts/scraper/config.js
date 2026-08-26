@@ -44,10 +44,14 @@ export const HAS_SERVICE_KEY = Boolean(
 );
 
 export const SOURCES = {
-  MARKET_NAIJA: 'https://marketnaijatv.com/commodity-market-prices/',
-  PLUCK_AGRO_MARKETS: 'https://pluckagro.com/liveprice/markets.php',
-  PLUCK_AGRO_MARKET_DETAIL: 'https://pluckagro.com/liveprice/market-detail.php',
+  COMMODITY_NG: 'https://commodity.ng/',
 };
+
+// Retired 2026-08-26 (still live, but unusable for the 8 DB markets):
+// MarketNaijaTv https://marketnaijatv.com/commodity-market-prices/ — rural only
+// PluckAgro     https://pluckagro.com/liveprice/ — dates stuck in 2025
+// NigerianQueries https://nigerianqueries.com/prices-of-commodities-in-nigeria/ — 3/8 markets
+// nigerianprice.com — SEO title "August 2026", article:modified_time 2022-11-15
 
 // Fuzzy match threshold (0-1, higher = stricter)
 export const MATCH_THRESHOLD = 0.6;

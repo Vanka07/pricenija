@@ -5,7 +5,8 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { MapPin, ArrowLeft, TrendingUp, TrendingDown, Package, Clock, BarChart3, ArrowDownRight, ArrowUpRight } from 'lucide-react';
 import { supabase, fetchNewestPriceDate } from '../../../lib/supabase';
-import { PRICE_LOOKBACK_DAYS, subtractDays } from '../../../lib/priceWindow';
+import { PRICE_LOOKBACK_DAYS, formatPriceDate, subtractDays } from '../../../lib/priceWindow';
+import { isJunkWholesalePrice, usablePrices } from '../../../lib/priceQuality';
 
 export default function MarketDetailPage() {
   const params = useParams();
@@ -101,6 +102,7 @@ export default function MarketDetailPage() {
     // Markets may report on different days, so we pick each market's most recent entry
     const latestByKey = {};
     allMarketPrices.forEach(p => {
+      if (isJunkWholesalePrice(p.price)) return;
       const key = `${p.commodity_id}-${p.market_id}`;
       if (!latestByKey[key] || p.date > latestByKey[key].date) {
         latestByKey[key] = p;
@@ -215,9 +217,14 @@ export default function MarketDetailPage() {
           </h2>
           <div className="flex items-center text-gray-400 text-xs sm:text-sm gap-1">
             <Clock className="w-4 h-4" />
-            {prices.length > 0
-              ? new Date(prices[0].date).toLocaleDateString('en-NG', { day: '2-digit', month: 'short', year: 'numeric' })
-              : 'N/A'}
+            {(() => {
+              const latest = usablePrices(prices)
+                .map((p) => p.date)
+                .filter(Boolean)
+                .sort()
+                .at(-1);
+              return formatPriceDate(latest) || 'N/A';
+            })()}
           </div>
         </div>
 
@@ -229,8 +236,10 @@ export default function MarketDetailPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {Object.values(groupedPrices).map(({ commodity, prices: commodityPrices }) => {
-              const latestPrice = commodityPrices[0];
-              const previousPrice = commodityPrices[1];
+              const usable = usablePrices(commodityPrices).sort((a, b) => b.date.localeCompare(a.date));
+              const latestPrice = usable[0];
+              const previousPrice = usable[1];
+              if (!latestPrice) return null;
               const priceChange = previousPrice
                 ? ((latestPrice.price - previousPrice.price) / previousPrice.price * 100).toFixed(1)
                 : 0;

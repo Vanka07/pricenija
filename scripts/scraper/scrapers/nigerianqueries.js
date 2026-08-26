@@ -1,4 +1,10 @@
 /**
+ * RETIRED — do not import from run-scraper.js.
+ *
+ * Re-checked live 2026-08-26: title still "April, 2026"; article date
+ * 2026-07-22. Only Bodija / Dawanau / Mile 12 of the 8 DB markets.
+ * Kept as history; Commodity.ng state pages replace it for coverage.
+ *
  * NigerianQueries Scraper
  * Source: https://nigerianqueries.com/prices-of-commodities-in-nigeria/
  *

@@ -36,9 +36,9 @@ jobs:
             exit 1
           fi
 
-      - name: Run scrapers
+      - name: Run Commodity.ng scrape
         working-directory: scripts/scraper
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-        run: node run-scraper.js
+        run: node run-scraper.js --source=commodityng

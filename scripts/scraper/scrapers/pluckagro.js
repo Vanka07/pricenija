@@ -1,7 +1,12 @@
 /**
+ * RETIRED — do not import from run-scraper.js.
+ *
+ * Re-checked live 2026-08-26: page is 200 and mentions Dawanau / Mile 12,
+ * but visible dates are October 9, 2025. Stale vs the stored March 2026 rows.
+ *
  * PluckAgro Scraper
  * Source: https://pluckagro.com/liveprice/
- * 
+ *
  * Scrapes market list, then fetches each market's detail page for commodity prices.
  * Data format: OHLCV (Open, High, Low, Close, Volume) per commodity per market.
  * We use the Close price as the current price.

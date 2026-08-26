@@ -5,9 +5,8 @@
   "type": "module",
   "scripts": {
     "scrape": "node run-scraper.js",
-    "scrape:marketnaija": "node run-scraper.js --source=marketnaija",
-    "scrape:pluckagro": "node run-scraper.js --source=pluckagro",
-    "scrape:dry": "node run-scraper.js --dry-run"
+    "scrape:commodityng": "node run-scraper.js --source=commodityng",
+    "scrape:dry": "node run-scraper.js --dry-run --verbose"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",

@@ -11,6 +11,8 @@ import {
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { supabase, onAuthStateChange, fetchLatestPrices, fetchPriceHistory as fetchPriceHistoryFromDb } from '../lib/supabase';
+import { isJunkWholesalePrice } from '../lib/priceQuality';
+import { formatPriceDate, isPriceDataStale } from '../lib/priceWindow';
 import { PageLoadingSkeleton } from './components/LoadingSkeleton';
 import Logo from './components/Logo';
 import AuthModal from './components/AuthModal';
@@ -185,6 +187,7 @@ function PriceNijaApp() {
       const { data, error } = await fetchPriceHistoryFromDb(commodityId, days);
       if (!error && data) {
         const grouped = data.reduce((acc, item) => {
+          if (isJunkWholesalePrice(item.price)) return acc;
           if (!acc[item.date]) acc[item.date] = { prices: [], date: item.date };
           acc[item.date].prices.push(item.price);
           return acc;
@@ -228,6 +231,7 @@ function PriceNijaApp() {
     // Sort all prices by date descending so we encounter newest first
     const sorted = [...prices].sort((a, b) => b.date.localeCompare(a.date));
     sorted.forEach(p => {
+      if (isJunkWholesalePrice(p.price)) return;
       const key = `${p.commodity_id}-${p.market_id}`;
       if (!latestPrices[key]) {
         latestPrices[key] = p;
@@ -239,6 +243,7 @@ function PriceNijaApp() {
     // Build daily averages per commodity for sparkline
     const dailyAvgs = {};
     prices.forEach(p => {
+      if (isJunkWholesalePrice(p.price)) return;
       const key = `${p.commodity_id}-${p.date}`;
       if (!dailyAvgs[key]) dailyAvgs[key] = { commodity_id: p.commodity_id, date: p.date, prices: [] };
       dailyAvgs[key].prices.push(p.price);
@@ -297,7 +302,7 @@ function PriceNijaApp() {
       const marketCommodityPrevious = {};
 
       prices
-        .filter(p => p.market_id === market.id)
+        .filter(p => p.market_id === market.id && !isJunkWholesalePrice(p.price))
         .sort((a, b) => b.date.localeCompare(a.date))
         .forEach(p => {
           if (!marketCommodityLatest[p.commodity_id]) {
@@ -607,15 +612,19 @@ function PriceNijaApp() {
                 <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6">
                   <div className="flex-1">
                     <div className="inline-flex items-center gap-2 bg-green-500/10 border border-green-500/20 rounded-full px-3 py-1 mb-4">
-                      <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                      <span className="text-green-400 text-xs font-medium">Live market data</span>
+                      <span className={`w-2 h-2 rounded-full ${isPriceDataStale(lastUpdated) ? 'bg-yellow-500' : 'bg-green-500 animate-pulse'}`} />
+                      <span className={`${isPriceDataStale(lastUpdated) ? 'text-yellow-400' : 'text-green-400'} text-xs font-medium`}>
+                        {isPriceDataStale(lastUpdated)
+                          ? `Latest on record${formatPriceDate(lastUpdated) ? ` · ${formatPriceDate(lastUpdated)}` : ''}`
+                          : 'Live market data'}
+                      </span>
                     </div>
                     <h1 className="text-2xl sm:text-4xl font-bold mb-3 leading-tight">
                       Compare Prices.<br />
                       <span className="text-green-400">Save Money.</span>
                     </h1>
                     <p className="text-gray-300 text-sm sm:text-base mb-5 max-w-lg">
-                      Find the cheapest market for any commodity across Nigeria. Real-time prices from {markets.length}+ markets — updated daily.
+                      Find the cheapest market for any commodity across Nigeria. Wholesale prices from {markets.length}+ markets.
                     </p>
                     <div className="flex flex-wrap gap-3">
                       <button
@@ -637,7 +646,7 @@ function PriceNijaApp() {
                     {[
                       { value: commodities.length + '+', label: 'Commodities', color: 'text-green-400', delay: '0.1s' },
                       { value: markets.length + '+', label: 'Markets', color: 'text-blue-400', delay: '0.2s' },
-                      { value: 'Daily', label: 'Updates', color: 'text-yellow-400', delay: '0.3s' },
+                      { value: formatPriceDate(lastUpdated) || '—', label: 'As of', color: 'text-yellow-400', delay: '0.3s' },
                     ].map((stat) => (
                       <div key={stat.label} className="text-center md:text-right animate-fade-in-up" style={{ animationDelay: stat.delay }}>
                         <p className={`text-2xl sm:text-3xl font-bold ${stat.color}`}>{stat.value}</p>

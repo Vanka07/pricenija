@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase, onAuthStateChange, fetchLatestPrices, fetchPriceHistory as fetchPriceHistoryFromDb } from '../../lib/supabase';
+import { isJunkWholesalePrice } from '../../lib/priceQuality';
 
 export default function useMarketData() {
   const [user, setUser] = useState(null);
@@ -98,6 +99,7 @@ export default function useMarketData() {
       const { data, error } = await fetchPriceHistoryFromDb(commodityId, days);
       if (!error && data) {
         const grouped = data.reduce((acc, item) => {
+          if (isJunkWholesalePrice(item.price)) return acc;
           if (!acc[item.date]) acc[item.date] = { prices: [], date: item.date };
           acc[item.date].prices.push(item.price);
           return acc;
@@ -137,6 +139,7 @@ export default function useMarketData() {
     const latestPrices = {}, previousPrices = {};
     const sorted = [...prices].sort((a, b) => b.date.localeCompare(a.date));
     sorted.forEach(p => {
+      if (isJunkWholesalePrice(p.price)) return;
       const key = `${p.commodity_id}-${p.market_id}`;
       if (!latestPrices[key]) {
         latestPrices[key] = p;
@@ -147,6 +150,7 @@ export default function useMarketData() {
 
     const dailyAvgs = {};
     prices.forEach(p => {
+      if (isJunkWholesalePrice(p.price)) return;
       const key = `${p.commodity_id}-${p.date}`;
       if (!dailyAvgs[key]) dailyAvgs[key] = { commodity_id: p.commodity_id, date: p.date, prices: [] };
       dailyAvgs[key].prices.push(p.price);
@@ -202,7 +206,7 @@ export default function useMarketData() {
       const marketCommodityPrevious = {};
 
       prices
-        .filter(p => p.market_id === market.id)
+        .filter(p => p.market_id === market.id && !isJunkWholesalePrice(p.price))
         .sort((a, b) => b.date.localeCompare(a.date))
         .forEach(p => {
           if (!marketCommodityLatest[p.commodity_id]) {
